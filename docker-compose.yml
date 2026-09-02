@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # 1. Main database PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: bank_postgres
+    environment:
+      POSTGRES_DB: bank_db
+      POSTGRES_USER: bank_user
+      POSTGRES_PASSWORD: bank_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank_user -d bank_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. In-Memory cache Redis (for limits and tokens)
+  redis:
+    image: redis:7-alpine
+    container_name: bank_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # 3. Message broker RabbitMQ (Event-Driven Architecture)
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: bank_rabbitmq
+    ports:
+      - "5672:5672"     # AMQP port for services
+      - "15672:15672"   # Web panel management (Management UI)
+    environment:
+      RABBITMQ_DEFAULT_USER: bank_guest
+      RABBITMQ_DEFAULT_PASS: bank_guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:

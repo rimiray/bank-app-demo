@@ -1,0 +1,221 @@
+openapi: 3.0.3
+info:
+  title: Bank-App-Demo Cards & Credit Engine API
+  description: Microservices API for Card Lifecycle, Credit Scoring, and AI Collateral Evaluation.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local Gateway / Environment
+
+paths:
+  # --- CARD MANAGEMENT (Kotlin / Card Service) ---
+  /cards:
+    get:
+      summary: Get all cards for active user
+      operationId: getUserCards
+      responses:
+        '200':
+          description: List of user cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CardResponse'
+
+    post:
+      summary: Issue a new premium card
+      operationId: issueCard
+      responses:
+        '201':
+          description: Card created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardResponse'
+
+  /cards/{cardId}/topup:
+    post:
+      summary: Top-up card balance
+      operationId: topUpCard
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AmountRequest'
+      responses:
+        '200':
+          description: Balance updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardResponse'
+
+  /cards/{cardId}/purchase:
+    post:
+      summary: Make a purchase
+      operationId: purchaseCard
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AmountRequest'
+      responses:
+        '200':
+          description: Purchase successful
+        '402':
+          description: Payment Required - Insufficient funds
+
+  /cards/{cardId}/close:
+    post:
+      summary: Close/Delete card (Only if balance is zero & debt is 0)
+      operationId: closeCard
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Card successfully closed
+        '400':
+          description: Cannot close card with active debt or negative balance
+
+  # --- CREDIT CALCULATOR (Java 21 / Credit Service) ---
+  /credits/calculate:
+    post:
+      summary: Calculate annuity credit payments & publish scoring event
+      operationId: calculateCredit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditCalculationRequest'
+      responses:
+        '200':
+          description: Calculation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditCalculationResponse'
+
+  # --- AI COLLATERAL EVALUATION (Gemini Vision API) ---
+  /collateral/evaluate:
+    post:
+      summary: Upload collateral photo for AI recognition and value assessment
+      operationId: evaluateCollateral
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: AI assessment result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollateralEvaluationResponse'
+
+components:
+  schemas:
+    CardResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        cardNumberMasked:
+          type: string
+          example: "**** **** **** 4242"
+        balance:
+          type: number
+          example: 1250.50
+        creditLimit:
+          type: number
+          example: 5000.00
+        currency:
+          type: string
+          example: "EUR"
+        status:
+          type: string
+          example: "ACTIVE"
+
+    AmountRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          example: 100.00
+
+    CreditCalculationRequest:
+      type: object
+      required: [requestedAmount, monthlyIncome, termMonths]
+      properties:
+        requestedAmount:
+          type: number
+          example: 10000.00
+        monthlyIncome:
+          type: number
+          example: 3500.00
+        termMonths:
+          type: integer
+          minimum: 1
+          maximum: 120
+          example: 24
+        aiCollateralValueEur:
+          type: number
+          example: 1500.00
+
+    CreditCalculationResponse:
+      type: object
+      properties:
+        monthlyPayment:
+          type: number
+          example: 456.78
+        interestRate:
+          type: number
+          example: 8.5
+        approvedLimit:
+          type: number
+          example: 10000.00
+        status:
+          type: string
+          example: "APPROVED"
+
+    CollateralEvaluationResponse:
+      type: object
+      properties:
+        objectDetected:
+          type: string
+          example: "MacBook Pro 16 M2"
+        condition:
+          type: string
+          example: "Good condition, minor scratches"
+        estimatedValueEur:
+          type: number
+          example: 1200.00
+        maxCreditLimitEur:
+          type: number
+          example: 850.00
