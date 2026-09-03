@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: ai-collateral-service
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  port: 8083
+
+gemini:
+  api:
+    key: ${GEMINI_API_KEY:your_default_key_here}
+    model: ${GEMINI_MODEL:gemini-3.1-flash-lite}
+    base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/models}
+  retry:
+    max-attempts: ${GEMINI_MAX_ATTEMPTS:3}
+    initial-delay-ms: ${GEMINI_RETRY_DELAY_MS:800}
+  fallback:
+    estimated-value-eur: ${GEMINI_FALLBACK_VALUE_EUR:500.00}
