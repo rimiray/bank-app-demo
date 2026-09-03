@@ -1,0 +1,28 @@
+server:
+  port: 8082
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bank_db
+    username: bank_user
+    password: bank_password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: bank_guest
+    password: bank_guest
+
+app:
+  rabbitmq:
+    exchange: bank.events
+    queue: credit.scoring.queue
+    routing-key: credit.calculated
