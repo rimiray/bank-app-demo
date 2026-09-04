@@ -82,6 +82,22 @@ class CardService(
 
     @CacheEvict(cacheNames = [CARDS_CACHE], allEntries = true)
     @Transactional
+    fun applyCredit(
+        cardId: String,
+        disbursementAmount: BigDecimal,
+        approvedCreditLimit: BigDecimal,
+    ): CardResponse {
+        val card = findActiveCard(cardId)
+        card.balance = card.balance.add(disbursementAmount)
+        card.creditLimit = card.creditLimit.max(approvedCreditLimit)
+        transactionRepository.save(
+            Transaction(cardId = card.id, amount = disbursementAmount, type = TransactionType.CREDIT_DISBURSEMENT),
+        )
+        return cardRepository.save(card).toResponse()
+    }
+
+    @CacheEvict(cacheNames = [CARDS_CACHE], allEntries = true)
+    @Transactional
     fun closeCard(cardId: String): CardResponse {
         val card = findCard(cardId)
         if (card.activeDebt > BigDecimal.ZERO || card.balance < BigDecimal.ZERO) {

@@ -1,6 +1,7 @@
 package com.bankapp.cardservice.controller
 
 import com.bankapp.cardservice.dto.AmountRequest
+import com.bankapp.cardservice.dto.ApplyCreditRequest
 import com.bankapp.cardservice.dto.CardResponse
 import com.bankapp.cardservice.service.CardService
 import jakarta.validation.Valid
@@ -36,6 +37,16 @@ class CardController(
         @PathVariable cardId: String,
         @Valid @RequestBody request: AmountRequest,
     ): CardResponse = cardService.purchase(cardId, request.amount)
+
+    @PostMapping("/{cardId}/apply-credit")
+    fun applyCredit(
+        @PathVariable cardId: String,
+        @Valid @RequestBody request: ApplyCreditRequest,
+    ): CardResponse = cardService.applyCredit(
+        cardId,
+        request.disbursementAmount,
+        request.approvedCreditLimit,
+    )
 
     @PostMapping("/{cardId}/close")
     fun closeCard(@PathVariable cardId: String): CardResponse =

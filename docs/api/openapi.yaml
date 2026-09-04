@@ -24,7 +24,7 @@ paths:
                   $ref: '#/components/schemas/CardResponse'
 
     post:
-      summary: Issue a new premium card
+      summary: Issue a new card
       operationId: issueCard
       responses:
         '201':
@@ -95,6 +95,32 @@ paths:
           description: Card successfully closed
         '400':
           description: Cannot close card with active debt or negative balance
+
+  /cards/{cardId}/apply-credit:
+    post:
+      summary: Disburse an approved credit onto a card (raise balance and credit limit)
+      operationId: applyCreditToCard
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplyCreditRequest'
+      responses:
+        '200':
+          description: Credit applied to card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardResponse'
+        '404':
+          description: Card not found or not active
 
   # --- CREDIT CALCULATOR (Java 21 / Credit Service) ---
   /credits/calculate:
@@ -168,6 +194,19 @@ components:
         amount:
           type: number
           example: 100.00
+
+    ApplyCreditRequest:
+      type: object
+      required: [disbursementAmount, approvedCreditLimit]
+      properties:
+        disbursementAmount:
+          type: number
+          example: 10000.00
+          description: Loan cash credited to card balance
+        approvedCreditLimit:
+          type: number
+          example: 15000.00
+          description: New credit limit floor (card keeps the higher of current and this value)
 
     CreditCalculationRequest:
       type: object
