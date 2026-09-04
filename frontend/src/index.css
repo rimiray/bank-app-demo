@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply min-h-screen bg-mesh font-sans text-bank-ink;
+  }
+
+  ::selection {
+    background-color: rgb(0 160 200 / 0.25);
+    color: #0b1f2a;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border bg-white backdrop-blur-sm;
+    border-color: rgb(197 213 220 / 0.7);
+    background-color: rgb(255 255 255 / 0.8);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+      text-sm font-semibold text-white transition;
+    background-color: #00a0c8;
+  }
+
+  .btn-primary:hover {
+    background-color: #007a9a;
+  }
+
+  .btn-primary:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border bg-white
+      px-4 py-2.5 text-sm font-semibold transition;
+    border-color: #c5d5dc;
+    color: #0b1f2a;
+  }
+
+  .btn-secondary:hover {
+    border-color: #00a0c8;
+    color: #007a9a;
+  }
+
+  .btn-secondary:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .field {
+    @apply w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm outline-none transition;
+    border-color: #c5d5dc;
+  }
+
+  .field:focus {
+    border-color: #00a0c8;
+    box-shadow: 0 0 0 2px rgb(0 160 200 / 0.2);
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider;
+    color: rgb(11 31 42 / 0.55);
+  }
+}
