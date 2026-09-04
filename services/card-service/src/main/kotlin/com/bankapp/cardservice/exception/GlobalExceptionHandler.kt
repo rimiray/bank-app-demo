@@ -33,6 +33,12 @@ class GlobalExceptionHandler {
         request: HttpServletRequest,
     ): ResponseEntity<ApiError> = error(HttpStatus.BAD_REQUEST, ex.message, request)
 
+    @ExceptionHandler(CannotDeleteCardException::class)
+    fun handleCannotDelete(
+        ex: CannotDeleteCardException,
+        request: HttpServletRequest,
+    ): ResponseEntity<ApiError> = error(HttpStatus.BAD_REQUEST, ex.message, request)
+
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleValidation(
         ex: MethodArgumentNotValidException,

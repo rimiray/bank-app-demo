@@ -7,6 +7,9 @@ data class CardResponse(
     val cardNumberMasked: String,
     val balance: BigDecimal,
     val creditLimit: BigDecimal,
+    val activeDebt: BigDecimal,
+    val loanPrincipal: BigDecimal,
     val currency: String,
     val status: String,
+    val createdAt: String,
 )

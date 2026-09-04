@@ -4,4 +4,6 @@ class CardNotFoundException(cardId: String) : RuntimeException("Card not found: 
 
 class InsufficientFundsException : RuntimeException("Payment Required - Insufficient funds")
 
-class CannotCloseCardException : RuntimeException("Cannot close card with active debt")
+class CannotCloseCardException : RuntimeException("Cannot close card with active debt or negative balance")
+
+class CannotDeleteCardException : RuntimeException("Cannot delete card with active debt or negative balance")

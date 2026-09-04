@@ -45,3 +45,7 @@ export function applyCreditToCard(
 export function closeCard(cardId: string): Promise<CardResponse> {
   return request<CardResponse>(`${BASE}/${cardId}/close`, { method: 'POST' })
 }
+
+export function deleteCard(cardId: string): Promise<void> {
+  return request<void>(`${BASE}/${cardId}`, { method: 'DELETE' })
+}

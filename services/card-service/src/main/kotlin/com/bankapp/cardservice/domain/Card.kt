@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.math.BigDecimal
+import java.time.Instant
 import java.util.UUID
 
 @Entity
@@ -24,8 +25,13 @@ class Card(
     @Column(nullable = false, precision = 19, scale = 2)
     var creditLimit: BigDecimal = BigDecimal("5000.00"),
 
+    /** Outstanding revolving / loan debt (blocks close while &gt; 0). */
     @Column(nullable = false, precision = 19, scale = 2)
     var activeDebt: BigDecimal = BigDecimal.ZERO,
+
+    /** Principal still owed from apply-credit disbursements. */
+    @Column(name = "loan_principal", nullable = false, precision = 19, scale = 2)
+    var loanPrincipal: BigDecimal = BigDecimal.ZERO,
 
     @Column(nullable = false)
     var currency: String = "EUR",
@@ -33,4 +39,7 @@ class Card(
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var status: CardStatus = CardStatus.ACTIVE,
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    val createdAt: Instant = Instant.now(),
 )

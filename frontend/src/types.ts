@@ -3,8 +3,11 @@ export interface CardResponse {
   cardNumberMasked: string
   balance: number
   creditLimit: number
+  activeDebt?: number
+  loanPrincipal?: number
   currency: string
   status: string
+  createdAt?: string
 }
 
 export interface AmountRequest {

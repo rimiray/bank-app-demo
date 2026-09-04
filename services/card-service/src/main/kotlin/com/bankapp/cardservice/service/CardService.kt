@@ -6,6 +6,7 @@ import com.bankapp.cardservice.domain.Transaction
 import com.bankapp.cardservice.domain.TransactionType
 import com.bankapp.cardservice.dto.CardResponse
 import com.bankapp.cardservice.exception.CannotCloseCardException
+import com.bankapp.cardservice.exception.CannotDeleteCardException
 import com.bankapp.cardservice.exception.CardNotFoundException
 import com.bankapp.cardservice.exception.InsufficientFundsException
 import com.bankapp.cardservice.repository.CardRepository
@@ -25,7 +26,7 @@ class CardService(
     @Cacheable(cacheNames = [CARDS_CACHE])
     @Transactional(readOnly = true)
     fun getAllCards(): List<CardResponse> =
-        cardRepository.findAll().map { it.toResponse() }
+        cardRepository.findAllInDbTableOrder().map { it.toResponse() }
 
     @CacheEvict(cacheNames = [CARDS_CACHE], allEntries = true)
     @Transactional
@@ -50,6 +51,8 @@ class CardService(
         if (card.activeDebt > BigDecimal.ZERO) {
             val debtPayment = remaining.min(card.activeDebt)
             card.activeDebt = card.activeDebt.subtract(debtPayment)
+            val loanPayment = debtPayment.min(card.loanPrincipal)
+            card.loanPrincipal = card.loanPrincipal.subtract(loanPayment)
             remaining = remaining.subtract(debtPayment)
         }
         card.balance = card.balance.add(remaining)
@@ -89,6 +92,8 @@ class CardService(
     ): CardResponse {
         val card = findActiveCard(cardId)
         card.balance = card.balance.add(disbursementAmount)
+        card.activeDebt = card.activeDebt.add(disbursementAmount)
+        card.loanPrincipal = card.loanPrincipal.add(disbursementAmount)
         card.creditLimit = card.creditLimit.max(approvedCreditLimit)
         transactionRepository.save(
             Transaction(cardId = card.id, amount = disbursementAmount, type = TransactionType.CREDIT_DISBURSEMENT),
@@ -100,11 +105,25 @@ class CardService(
     @Transactional
     fun closeCard(cardId: String): CardResponse {
         val card = findCard(cardId)
+        if (card.status != CardStatus.ACTIVE) {
+            throw CannotCloseCardException()
+        }
         if (card.activeDebt > BigDecimal.ZERO || card.balance < BigDecimal.ZERO) {
             throw CannotCloseCardException()
         }
         card.status = CardStatus.CLOSED
         return cardRepository.save(card).toResponse()
+    }
+
+    @CacheEvict(cacheNames = [CARDS_CACHE], allEntries = true)
+    @Transactional
+    fun deleteCard(cardId: String) {
+        val card = findCard(cardId)
+        if (card.activeDebt > BigDecimal.ZERO || card.balance < BigDecimal.ZERO) {
+            throw CannotDeleteCardException()
+        }
+        transactionRepository.deleteByCardId(cardId)
+        cardRepository.delete(card)
     }
 
     private fun findCard(cardId: String): Card =
@@ -123,8 +142,11 @@ class CardService(
         cardNumberMasked = cardNumberMasked,
         balance = balance,
         creditLimit = creditLimit,
+        activeDebt = activeDebt,
+        loanPrincipal = loanPrincipal,
         currency = currency,
         status = status.name,
+        createdAt = createdAt.toString(),
     )
 
     companion object {

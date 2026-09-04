@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
-import { applyCreditToCard, getCards } from '../api/cards'
+import { useMemo, useState, type Dispatch, type SetStateAction } from 'react'
+import { applyCreditToCard } from '../api/cards'
 import { evaluateCollateral } from '../api/collateral'
 import { calculateCredit } from '../api/credit'
 import { ApiError, money } from '../api/client'
+import { upsertCardInList } from '../lib/cardsOrder'
 import type {
   CardResponse,
   CollateralEvaluationResponse,
@@ -11,7 +12,14 @@ import type {
 
 type Step = 1 | 2
 
-export function CreditTab() {
+interface Props {
+  cards: CardResponse[]
+  setCards: Dispatch<SetStateAction<CardResponse[]>>
+  selectedCardId: string | null
+  onSelectCard: (id: string | null) => void
+}
+
+export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Props) {
   const [step, setStep] = useState<Step>(1)
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -21,8 +29,6 @@ export function CreditTab() {
   const [monthlyIncome, setMonthlyIncome] = useState('3500')
   const [termMonths, setTermMonths] = useState('24')
   const [result, setResult] = useState<CreditCalculationResponse | null>(null)
-  const [cards, setCards] = useState<CardResponse[]>([])
-  const [targetCardId, setTargetCardId] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -32,22 +38,15 @@ export function CreditTab() {
     [cards],
   )
 
+  const targetCardId =
+    selectedCardId && activeCards.some((c) => c.id === selectedCardId)
+      ? selectedCardId
+      : (activeCards[0]?.id ?? '')
+
   const collateralValue = useMemo(() => {
     if (!collateral) return ''
     return String(collateral.estimatedValueEur)
   }, [collateral])
-
-  useEffect(() => {
-    void getCards()
-      .then((data) => {
-        setCards(data)
-        const firstActive = data.find((c) => c.status.toUpperCase() === 'ACTIVE')
-        if (firstActive) setTargetCardId(firstActive.id)
-      })
-      .catch(() => {
-        /* card list is optional until apply */
-      })
-  }, [])
 
   function pickFile(next: File | null) {
     if (preview) URL.revokeObjectURL(preview)
@@ -105,9 +104,10 @@ export function CreditTab() {
         Number(requestedAmount),
         Number(result.approvedLimit),
       )
-      setCards((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
+      setCards((prev) => upsertCardInList(prev, updated))
+      onSelectCard(updated.id)
       setNotice(
-        `Credit applied to ${updated.cardNumberMasked}: +${money(Number(requestedAmount))} balance, limit ${money(updated.creditLimit)}`,
+        `Credit applied to ${updated.cardNumberMasked}: +${money(Number(requestedAmount))} balance & debt, loan ${money(Number(updated.loanPrincipal ?? 0))}, limit ${money(updated.creditLimit)}`,
       )
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to apply credit to card')
@@ -246,13 +246,16 @@ export function CreditTab() {
                 <select
                   className="field"
                   value={targetCardId}
-                  onChange={(e) => setTargetCardId(e.target.value)}
+                  onChange={(e) => onSelectCard(e.target.value || null)}
                 >
-                  {activeCards.length === 0 && <option value="">No active cards — issue one first</option>}
+                  {activeCards.length === 0 && (
+                    <option value="">No active cards — issue one first</option>
+                  )}
                   {activeCards.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.cardNumberMasked} · bal {money(c.balance, c.currency)} · lim{' '}
-                      {money(c.creditLimit, c.currency)}
+                      {c.cardNumberMasked} · bal {money(c.balance, c.currency)} · loan{' '}
+                      {money(Number(c.loanPrincipal ?? 0), c.currency)} · debt{' '}
+                      {money(Number(c.activeDebt ?? 0), c.currency)}
                     </option>
                   ))}
                 </select>
@@ -359,8 +362,9 @@ export function CreditTab() {
                 {result.status === 'APPROVED' && (
                   <div className="space-y-2 border-t border-bank-line/70 pt-4">
                     <p className="text-sm text-bank-ink/55">
-                      Disburse <strong>{money(Number(requestedAmount))}</strong> to card balance and raise
-                      credit limit to at least <strong>{money(result.approvedLimit)}</strong>.
+                      Disburse <strong>{money(Number(requestedAmount))}</strong> to card balance, record the
+                      same amount as taken credit / debt, and raise credit limit to at least{' '}
+                      <strong>{money(result.approvedLimit)}</strong>.
                     </p>
                     <button
                       type="button"

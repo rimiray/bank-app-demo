@@ -82,7 +82,7 @@ paths:
 
   /cards/{cardId}/close:
     post:
-      summary: Close/Delete card (Only if balance is zero & debt is 0)
+      summary: Close card (blocked if active debt > 0 or balance < 0)
       operationId: closeCard
       parameters:
         - name: cardId
@@ -95,6 +95,25 @@ paths:
           description: Card successfully closed
         '400':
           description: Cannot close card with active debt or negative balance
+
+  /cards/{cardId}:
+    delete:
+      summary: Permanently delete a card and its transactions
+      description: Blocked if active debt > 0 or balance < 0. Works for ACTIVE and CLOSED cards.
+      operationId: deleteCard
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Card deleted
+        '400':
+          description: Cannot delete card with active debt or negative balance
+        '404':
+          description: Card not found
 
   /cards/{cardId}/apply-credit:
     post:
@@ -180,12 +199,23 @@ components:
         creditLimit:
           type: number
           example: 5000.00
+        activeDebt:
+          type: number
+          example: 0
+        loanPrincipal:
+          type: number
+          example: 10000.00
+          description: Outstanding principal from applied credits
         currency:
           type: string
           example: "EUR"
         status:
           type: string
           example: "ACTIVE"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
 
     AmountRequest:
       type: object

@@ -27,6 +27,10 @@ export async function request<T>(url: string, init?: RequestInit): Promise<T> {
     )
   }
 
+  if (response.status === 204) {
+    return undefined as T
+  }
+
   return payload as T
 }
 
