@@ -1,0 +1,13 @@
+﻿# Build output and Gradle caches - generated, never useful as context
+**/build/
+**/.gradle/
+**/bin/
+**/out/
+
+# IDE
+.idea/
+*.iml
+
+# Binaries
+*.jar
+*.class
