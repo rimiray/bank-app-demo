@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  card-and-credit:
+    name: ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [card-service, credit-service]
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+          cache-dependency-path: |
+            services/${{ matrix.service }}/gradle/wrapper/gradle-wrapper.properties
+            services/${{ matrix.service }}/*.gradle*
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build and test
+        run: ./gradlew build test --no-daemon
+
+  ai-collateral-service:
+    name: ai-collateral-service
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ai-collateral-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+          cache-dependency-path: |
+            services/ai-collateral-service/gradle/wrapper/gradle-wrapper.properties
+            services/ai-collateral-service/*.gradle*
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      # No GEMINI_API_KEY in CI. Live Gemini calls must stay behind a profile/tag
+      # (e.g. -PliveGemini / @Tag("live-gemini")) and must not run on this job.
+      - name: Build
+        run: ./gradlew build --no-daemon
+        env:
+          GEMINI_API_KEY: ""
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  contract-lint:
+    name: contract-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Lint OpenAPI contract
+        run: npx --yes @redocly/cli@1 lint docs/api/openapi.yaml

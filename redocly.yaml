@@ -1,0 +1,8 @@
+# OpenAPI lint rules for CI (contract-lint job).
+# This demo has no auth yet — do not require security on every operation.
+extends:
+  - recommended
+
+rules:
+  security-defined: off
+  operation-4xx-response: warn

@@ -33,11 +33,12 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
-    // Docker Desktop (linux engine) named pipe — required for Testcontainers on this host
-    environment(
-        "DOCKER_HOST",
-        System.getenv("DOCKER_HOST") ?: "npipe:////./pipe/dockerDesktopLinuxEngine",
-    )
+    // On Windows, Docker Desktop often needs an explicit named pipe for Testcontainers.
+    // Never set a Windows pipe on Linux (GitHub Actions) — leave the default docker.sock.
+    val isWindows = System.getProperty("os.name").lowercase().contains("windows")
+    val dockerHost = System.getenv("DOCKER_HOST")
+        ?: if (isWindows) "npipe:////./pipe/dockerDesktopLinuxEngine" else null
+    dockerHost?.let { environment("DOCKER_HOST", it) }
 }
 
 tasks.wrapper {

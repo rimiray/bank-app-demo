@@ -1,3 +1,5 @@
+[![CI](https://github.com/rimiray/bank-app-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/rimiray/bank-app-demo/actions/workflows/ci.yml)
+
 # bank-app-demo
 Event-Driven Microservices Architecture Demo (Spring Boot Java/Kotlin, React, RabbitMQ, Redis, PostgreSQL, Gemini API) for engineering practice.
 
