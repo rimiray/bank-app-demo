@@ -26,3 +26,5 @@ app:
     exchange: bank.events
     queue: credit.scoring.queue
     routing-key: credit.calculated
+  credit:
+    annual-interest-rate: 8.5

@@ -26,11 +26,18 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
     runtimeOnly("org.postgresql:postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:postgresql")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // Docker Desktop (linux engine) named pipe — required for Testcontainers on this host
+    environment(
+        "DOCKER_HOST",
+        System.getenv("DOCKER_HOST") ?: "npipe:////./pipe/dockerDesktopLinuxEngine",
+    )
 }
 
 tasks.wrapper {

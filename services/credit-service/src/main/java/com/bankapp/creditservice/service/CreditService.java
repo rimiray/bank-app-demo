@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class CreditService {
 
-    static final BigDecimal ANNUAL_INTEREST_RATE = new BigDecimal("8.5");
     private static final BigDecimal MONTHS_IN_YEAR = new BigDecimal("12");
     private static final BigDecimal COLLATERAL_LTV = new BigDecimal("0.70");
     private static final BigDecimal MAX_PAYMENT_TO_INCOME = new BigDecimal("0.40");
@@ -27,17 +26,20 @@ public class CreditService {
     private final RabbitTemplate rabbitTemplate;
     private final String exchange;
     private final String routingKey;
+    private final BigDecimal annualInterestRate;
 
     public CreditService(
             CreditApplicationRepository repository,
             RabbitTemplate rabbitTemplate,
             @Value("${app.rabbitmq.exchange}") String exchange,
-            @Value("${app.rabbitmq.routing-key}") String routingKey
+            @Value("${app.rabbitmq.routing-key}") String routingKey,
+            @Value("${app.credit.annual-interest-rate:8.5}") BigDecimal annualInterestRate
     ) {
         this.repository = repository;
         this.rabbitTemplate = rabbitTemplate;
         this.exchange = exchange;
         this.routingKey = routingKey;
+        this.annualInterestRate = annualInterestRate;
     }
 
     @Transactional
@@ -48,7 +50,7 @@ public class CreditService {
 
         BigDecimal monthlyPayment = annuityPayment(
                 request.getRequestedAmount(),
-                ANNUAL_INTEREST_RATE,
+                annualInterestRate,
                 request.getTermMonths()
         );
 
@@ -69,7 +71,7 @@ public class CreditService {
                 .termMonths(request.getTermMonths())
                 .aiCollateralValueEur(collateral)
                 .monthlyPayment(monthlyPayment)
-                .interestRate(ANNUAL_INTEREST_RATE)
+                .interestRate(annualInterestRate)
                 .approvedLimit(approvedLimit)
                 .status(status)
                 .build());
@@ -93,10 +95,13 @@ public class CreditService {
     }
 
     /**
-     * M = P * r(1+r)^n / ((1+r)^n - 1), r is monthly rate from 8.5% annual.
+     * M = P * r(1+r)^n / ((1+r)^n - 1), r is monthly rate from annual percent.
      */
     BigDecimal annuityPayment(BigDecimal principal, BigDecimal annualPercent, int termMonths) {
         if (termMonths <= 0) {
+            throw new IllegalArgumentException("termMonths must be between 1 and 120");
+        }
+        if (termMonths > 120) {
             throw new IllegalArgumentException("termMonths must be between 1 and 120");
         }
         BigDecimal monthlyRate = annualPercent
@@ -109,6 +114,10 @@ public class CreditService {
         double factor = Math.pow(1.0 + r, termMonths);
         double payment = principal.doubleValue() * (r * factor) / (factor - 1.0);
         return BigDecimal.valueOf(payment).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    BigDecimal getAnnualInterestRate() {
+        return annualInterestRate;
     }
 
     private boolean isAffordable(BigDecimal monthlyPayment, BigDecimal monthlyIncome) {
