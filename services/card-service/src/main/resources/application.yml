@@ -3,9 +3,10 @@ server:
 
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/bank_db}
-    username: ${DB_USER:bank_user}
-    password: ${DB_PASSWORD:bank_password}
+    # Local Compose sets DB_URL. On Railway, PG* are injected from the Postgres plugin.
+    url: ${DB_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:bank_db}}
+    username: ${DB_USER:${PGUSER:bank_user}}
+    password: ${DB_PASSWORD:${PGPASSWORD:bank_password}}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

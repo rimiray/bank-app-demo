@@ -1,54 +1,65 @@
-# Live deployment (Railway)
+# Live deployment on Railway
 
-Railway is the primary target: multi-service Dockerfiles, managed Postgres + Redis,
-private networking between services. **RabbitMQ is not a managed add-on on Railway’s
-free/hobby path** — use [CloudAMQP](https://www.cloudamqp.com/) **Little Lemur** (free
-tier) and set `RABBITMQ_*` / `RABBITMQ_SSL=true` (port `5671`) on `credit-service`.
+One authoring file describes the whole stack: [`.railway/railway.ts`](../.railway/railway.ts).
 
-## Architecture on Railway
+| Resource | How it runs |
+| --- | --- |
+| `postgres` | Railway managed Postgres |
+| `redis` | Railway managed Redis |
+| `rabbitmq` | Docker image `rabbitmq:3-management-alpine` (no CloudAMQP account needed) |
+| `card-service` / `credit-service` / `ai-collateral-service` | Dockerfile + GitHub root directory |
+| `frontend` | Dockerfile; nginx proxies to private backend URLs |
 
-| Service | Origin | Notes |
-| --- | --- | --- |
-| `postgres` | Railway plugin | Share one DB; both card & credit use `DB_URL` |
-| `redis` | Railway plugin | `REDIS_HOST` / `REDIS_PASSWORD` for card-service |
-| `rabbitmq` | **CloudAMQP free** | External AMQP for `CreditCalculatedEvent` |
-| `card-service` | `services/card-service/Dockerfile` | Public optional; private OK if only frontend calls it |
-| `credit-service` | `services/credit-service/Dockerfile` | Needs CloudAMQP + Postgres |
-| `ai-collateral-service` | `services/ai-collateral-service/Dockerfile` | `GEMINI_API_KEY` |
-| `frontend` | `frontend/Dockerfile` | **Public** URL → README Live Demo; nginx proxies to backends |
+## Prerequisites
 
-## One-time setup
+1. [Railway CLI](https://docs.railway.com/guides/cli) installed (`npm i -g @railway/cli`).
+2. GitHub repo `rimiray/bank-app-demo` connected to your Railway account (GitHub App).
+3. Latest `main` pushed (CI green).
 
-1. Create a [Railway](https://railway.app) project from this GitHub repo (or `railway init`).
-2. Add **Postgres** and **Redis** plugins; copy connection variables into each service.
-3. Create a CloudAMQP Little Lemur instance; map host/user/password/vhost into `credit-service`
-   (`RABBITMQ_PORT=5671`, `RABBITMQ_SSL=true`, `RABBITMQ_VHOST=<vhost>`).
-4. Deploy each Dockerfile service. Wire frontend env:
+## One-command style deploy
 
-```text
-CARD_SERVICE_URL=http://card-service.railway.internal:8081
-CREDIT_SERVICE_URL=http://credit-service.railway.internal:8082
-COLLATERAL_SERVICE_URL=http://ai-collateral-service.railway.internal:8083
-SKIP_INFRA_PROBES=true
-PORT=8080
-NGINX_PORT=8080
+From the repo root:
+
+```powershell
+# 1) Login once (browser)
+railway login
+
+# 2) Link this folder to a Railway project (create new or pick existing)
+railway link
+
+# 3) Install IaC SDK + apply the full graph (Postgres, Redis, RabbitMQ, 4 apps)
+npm install
+npm run railway:up
+
+# 4) Public URL for the dashboard
+npm run railway:domain
+
+# 5) Optional: Gemini key for real Vision (otherwise heuristic fallback)
+railway variable set GEMINI_API_KEY=your_key --service ai-collateral-service
 ```
 
-(Use Railway’s current private DNS / service variable references if the hostname
-scheme differs in your workspace.)
+Or run the helper script:
 
-5. Generate a public domain on `frontend` and paste it into README **Live Demo**.
+```powershell
+.\scripts\railway-up.ps1
+```
+
+After apply finishes and deployments are healthy, put the frontend domain into README **Live Demo**.
+
+## What went wrong with the first GitHub deploy?
+
+A single service on **repo root** with **Railpack** cannot build this monorepo.
+Use `.railway/railway.ts` (or create empty services with Root Directory + Dockerfile) instead.
 
 ## Seed data
 
-On empty DBs, `DemoDataSeeder` loads 3 cards and 1 approved credit application automatically.
+Empty DBs get 3 demo cards and one approved credit application via `DemoDataSeeder`.
 
-## Local vs live `.env`
+## Local vs Railway env
 
-| Variable | Local Compose | Live |
+| Concern | Local Compose | Railway |
 | --- | --- | --- |
-| `DB_URL` | `jdbc:postgresql://postgres:5432/bank_db` | Railway/Neon JDBC URL |
-| `REDIS_HOST` | `redis` | Railway Redis host |
-| `RABBITMQ_HOST` | `rabbitmq` | CloudAMQP host |
-| `RABBITMQ_SSL` | `false` | `true` |
-| Backend URLs for nginx | Compose DNS names | Railway private URLs |
+| JDBC | `DB_URL=jdbc:postgresql://postgres:5432/bank_db` | `PGHOST` / `PG*` from Postgres plugin |
+| Redis | `REDIS_HOST=redis` | `SPRING_DATA_REDIS_URL` from Redis plugin |
+| RabbitMQ | compose service `rabbitmq` | private domain of `rabbitmq` service, port `5672` |
+| Frontend → APIs | compose DNS names | `${{service.RAILWAY_PRIVATE_DOMAIN}}:${{service.PORT}}` |

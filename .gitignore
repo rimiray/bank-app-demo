@@ -28,3 +28,6 @@ replay_pid*
 .env
 .env.local
 *.env
+
+# Node (Railway IaC SDK at repo root)
+node_modules/

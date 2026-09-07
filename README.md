@@ -8,12 +8,12 @@ calls in a Business Banking self-credit flow.
 
 ## Live Demo
 
-> **Public URL:** _pending Railway project link — see [docs/DEPLOY.md](docs/DEPLOY.md)._  
-> Hosting target: **Railway** (Docker services + managed Postgres/Redis).  
-> **RabbitMQ** uses **CloudAMQP Little Lemur** (free tier) — Railway has no free managed AMQP.
+> **Public URL:** _pending — run `.\scripts\railway-up.ps1` (see [docs/DEPLOY.md](docs/DEPLOY.md))._  
+> Hosting: **Railway** via Infrastructure as Code (`.railway/railway.ts`) — managed Postgres + Redis,
+> RabbitMQ Docker service, three JVM apps + nginx frontend.
 
-After deploy, open the frontend URL above: Cards / Credit & Collateral / Architecture tabs should work;
-demo seed loads 3 cards and one approved credit application on empty databases.
+After deploy, Cards / Credit & Collateral / Architecture tabs should work; empty databases are
+seeded with 3 demo cards and one approved credit application.
 
 ## System Architecture
 
@@ -62,6 +62,7 @@ flowchart TD
 | [Architecture ADR](docs/adr/0001-architecture-overview.md) | Contract-first polyglot services, event publish, AI model choice, and **explicit trade-offs** (Gateway, async gap, AI fallback, mobile) |
 | [12-month Roadmap](docs/ROADMAP.md) | Q1–Q4 path from PoC to production (security/gateway, mobile BFF & KMP, risk/event sourcing, observability) |
 | [Engineering Standards](docs/ENGINEERING_STANDARDS.md) | Definition of Done, target GitFlow, banking code-review checklist, testing pyramid |
+| [Deploy guide](docs/DEPLOY.md) | Railway one-command stack via `.railway/railway.ts` |
 
 **How we build today**
 
@@ -85,7 +86,7 @@ cp .env.example .env
 `.env.example` uses **Docker network hostnames** (`postgres`, `redis`, `rabbitmq`) in `DB_URL` /
 `REDIS_HOST` / `RABBITMQ_HOST`. For bare-metal `bootRun`, point those at `localhost` instead.
 
-### 2. Full stack (one command)
+### 2. Full stack locally (one command)
 
 ```bash
 docker compose up --build
@@ -99,10 +100,19 @@ docker compose up --build
 | ai-collateral-service | http://localhost:8083 |
 | RabbitMQ UI | http://localhost:15672 |
 
-### 3. Alternative: local processes + Compose infra only
+### 3. Deploy to Railway (one script)
+
+```powershell
+railway login
+railway link
+.\scripts\railway-up.ps1
+```
+
+Details: [docs/DEPLOY.md](docs/DEPLOY.md).
+
+### 4. Alternative: local processes + Compose infra only
 
 ```bash
-# Infra only (set DB/Redis/Rabbit hosts to localhost in .env first)
 docker compose up -d postgres redis rabbitmq
 
 cd services/card-service && ./gradlew bootRun          # :8081
@@ -111,7 +121,7 @@ cd services/ai-collateral-service && ./gradlew bootRun # :8083
 cd frontend && npm ci && npm run dev                   # :5173 (Vite proxy)
 ```
 
-### 4. Verify
+### 5. Verify
 
 ```bash
 cd services/card-service && ./gradlew test
