@@ -42,7 +42,7 @@ export function ArchitectureTab() {
     try {
       setHealth(await fetchHealth())
     } catch {
-      setError('Health probe failed — is the Vite dev server running?')
+      setError('Health probe failed — is the dashboard/API stack running?')
     } finally {
       setLoading(false)
     }

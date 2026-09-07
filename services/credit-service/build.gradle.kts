@@ -22,6 +22,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-amqp")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
     runtimeOnly("org.postgresql:postgresql")
@@ -39,6 +40,10 @@ tasks.withType<Test> {
     val dockerHost = System.getenv("DOCKER_HOST")
         ?: if (isWindows) "npipe:////./pipe/dockerDesktopLinuxEngine" else null
     dockerHost?.let { environment("DOCKER_HOST", it) }
+}
+
+tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+    archiveFileName.set("app.jar")
 }
 
 tasks.wrapper {

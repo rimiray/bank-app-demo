@@ -1,25 +1,26 @@
-version: '3.8'
+# ZBK Bank Demo — full local stack.
+# Secrets and credentials come from `.env` (see `.env.example`). Nothing sensitive is hardcoded here.
 
 services:
-  # 1. Main database PostgreSQL
   postgres:
     image: postgres:16-alpine
     container_name: bank_postgres
+    env_file: .env
     environment:
-      POSTGRES_DB: bank_db
-      POSTGRES_USER: bank_user
-      POSTGRES_PASSWORD: bank_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bank_user -d bank_db"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
 
-  # 2. In-Memory cache Redis (for limits and tokens)
   redis:
     image: redis:7-alpine
     container_name: bank_redis
@@ -27,19 +28,131 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
-  # 3. Message broker RabbitMQ (Event-Driven Architecture)
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: bank_rabbitmq
-    ports:
-      - "5672:5672"     # AMQP port for services
-      - "15672:15672"   # Web panel management (Management UI)
+    env_file: .env
     environment:
-      RABBITMQ_DEFAULT_USER: bank_guest
-      RABBITMQ_DEFAULT_PASS: bank_guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  card-service:
+    build:
+      context: ./services/card-service
+    container_name: bank_card_service
+    env_file: .env
+    environment:
+      SERVER_PORT: 8081
+      DB_URL: ${DB_URL}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  credit-service:
+    build:
+      context: ./services/credit-service
+    container_name: bank_credit_service
+    env_file: .env
+    environment:
+      SERVER_PORT: 8082
+      DB_URL: ${DB_URL}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  ai-collateral-service:
+    build:
+      context: ./services/ai-collateral-service
+    container_name: bank_ai_collateral_service
+    env_file: .env
+    environment:
+      SERVER_PORT: 8083
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL}
+      GEMINI_BASE_URL: ${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/models}
+      GEMINI_MAX_ATTEMPTS: ${GEMINI_MAX_ATTEMPTS:-3}
+      GEMINI_RETRY_DELAY_MS: ${GEMINI_RETRY_DELAY_MS:-800}
+      GEMINI_FALLBACK_VALUE_EUR: ${GEMINI_FALLBACK_VALUE_EUR:-500.00}
+    ports:
+      - "8083:8083"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8083/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: bank_frontend
+    env_file: .env
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5173:5173"
+    depends_on:
+      card-service:
+        condition: service_healthy
+      credit-service:
+        condition: service_healthy
+      ai-collateral-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
 volumes:
   postgres_data:

@@ -11,7 +11,7 @@ calls in a Business Banking self-credit flow.
 ```mermaid
 flowchart TD
   SPA["React SPA :5173"]
-  Proxy["Vite Dev Proxy"]
+  Proxy["Vite Dev Proxy / Nginx"]
   Card["card-service :8081"]
   Credit["credit-service :8082"]
   AI["ai-collateral-service :8083"]
@@ -36,7 +36,7 @@ flowchart TD
 | `card-service` | Kotlin, Spring Boot 3 | 8081 |
 | `credit-service` | Java 21, Spring Boot 3 | 8082 |
 | `ai-collateral-service` | Java 21, Spring Boot 3 | 8083 |
-| Frontend dashboard | React + Vite + TypeScript | 5173 |
+| Frontend dashboard | React + Vite + TypeScript (Nginx in Docker) | 5173 |
 
 ## Key Business Features
 
@@ -44,7 +44,7 @@ flowchart TD
 | --- | --- | --- |
 | **Cards** | Issue cards, top-up, purchase (balance + credit limit / debt), close and delete with business guards | `card-service` |
 | **Credit Scoring** | Annuity payment at configurable rate (default 8.5%), income-based approval, collateral-boosted limit; publishes `CreditCalculatedEvent` | `credit-service` |
-| **AI Collateral Evaluation** | Photo → Vision appraisal via `gemini-3.1-flash-lite`; retry with backoff, then heuristic fallback so credit flow stays available | `ai-collateral-service` |
+| **AI Collateral Evaluation** | Photo to Vision appraisal via `gemini-3.1-flash-lite`; retry with backoff, then heuristic fallback so credit flow stays available | `ai-collateral-service` |
 
 ## Engineering Excellence & Process
 
@@ -52,7 +52,7 @@ flowchart TD
 | --- | --- |
 | [Architecture ADR](docs/adr/0001-architecture-overview.md) | Contract-first polyglot services, event publish, AI model choice, and **explicit trade-offs** (Gateway, async gap, AI fallback, mobile) |
 | [12-month Roadmap](docs/ROADMAP.md) | Q1–Q4 path from PoC to production (security/gateway, mobile BFF & KMP, risk/event sourcing, observability) |
-| [Engineering Standards](.github/ENGINEERING_STANDARDS.md) | Definition of Done, target GitFlow, banking code-review checklist, testing pyramid |
+| [Engineering Standards](docs/ENGINEERING_STANDARDS.md) | Definition of Done, target GitFlow, banking code-review checklist, testing pyramid |
 
 **How we build today**
 
@@ -64,34 +64,43 @@ flowchart TD
 
 ### 1. Prerequisites
 
-- Java 21, Node.js 22+, Docker Desktop
-- Copy secrets template and set a Gemini key (optional for heuristic-only collateral):
+- Docker Desktop (for the all-in-one stack)
+- Optional for IDE runs: Java 21, Node.js 22+
+- Copy secrets template and set a Gemini key (optional — without it, collateral uses heuristic fallback):
 
 ```bash
 cp .env.example .env
 # edit .env → GEMINI_API_KEY=...
 ```
 
-### 2. Infrastructure (one command)
+`.env.example` uses **Docker network hostnames** (`postgres`, `redis`, `rabbitmq`) in `DB_URL` /
+`REDIS_HOST` / `RABBITMQ_HOST`. For bare-metal `bootRun`, point those at `localhost` instead.
 
-Postgres, Redis, and RabbitMQ:
+### 2. Full stack (one command)
 
 ```bash
-docker compose up --build -d
+docker compose up --build
 ```
 
-### 3. Applications (local processes)
+| Surface | URL |
+| --- | --- |
+| Dashboard | http://localhost:5173 |
+| card-service | http://localhost:8081 |
+| credit-service | http://localhost:8082 |
+| ai-collateral-service | http://localhost:8083 |
+| RabbitMQ UI | http://localhost:15672 |
+
+### 3. Alternative: local processes + Compose infra only
 
 ```bash
-# Terminals — one per service
+# Infra only (set DB/Redis/Rabbit hosts to localhost in .env first)
+docker compose up -d postgres redis rabbitmq
+
 cd services/card-service && ./gradlew bootRun          # :8081
 cd services/credit-service && ./gradlew bootRun        # :8082
 cd services/ai-collateral-service && ./gradlew bootRun # :8083
-
-cd frontend && npm ci && npm run dev                   # :5173
+cd frontend && npm ci && npm run dev                   # :5173 (Vite proxy)
 ```
-
-Open the dashboard at [http://localhost:5173](http://localhost:5173). APIs are reached through the Vite proxy to ports **8081 / 8082 / 8083**.
 
 ### 4. Verify
 
