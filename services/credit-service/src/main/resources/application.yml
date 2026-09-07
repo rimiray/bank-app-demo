@@ -1,5 +1,5 @@
 server:
-  port: ${SERVER_PORT:8082}
+  port: ${PORT:${SERVER_PORT:8082}}
 
 spring:
   datasource:
@@ -16,10 +16,15 @@ spring:
           time_zone: UTC
     open-in-view: false
   rabbitmq:
+    # CloudAMQP free tier: set RABBITMQ_HOST / USER / PASSWORD / PORT (5671) + SSL,
+    # or pass a full AMQP URL via SPRING_RABBITMQ_ADDRESSES / standard Boot bindings.
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:bank_guest}
     password: ${RABBITMQ_PASSWORD:bank_guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    ssl:
+      enabled: ${RABBITMQ_SSL:false}
 
 app:
   rabbitmq:

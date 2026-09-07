@@ -1,0 +1,12 @@
+# Railway multi-service layout is configured via the dashboard / CLI from Dockerfiles.
+# This file documents the frontend public service defaults when using `railway.toml` per service.
+# Prefer setting variables in the Railway UI; do not commit secrets.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "frontend/Dockerfile"
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"

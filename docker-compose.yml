@@ -2,6 +2,7 @@
 # Secrets and credentials come from `.env` (see `.env.example`). Nothing sensitive is hardcoded here.
 
 services:
+  # 1. Main database PostgreSQL
   postgres:
     image: postgres:16-alpine
     container_name: bank_postgres
@@ -21,6 +22,7 @@ services:
       retries: 10
       start_period: 10s
 
+  # 2. In-Memory cache Redis (for limits and tokens)
   redis:
     image: redis:7-alpine
     container_name: bank_redis
@@ -35,6 +37,7 @@ services:
       retries: 10
       start_period: 5s
 
+  # 3. Message broker RabbitMQ (Event-Driven Architecture)
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: bank_rabbitmq
@@ -43,8 +46,8 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "5672:5672"     # AMQP port for services
+      - "15672:15672"   # Web panel management (Management UI)
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -60,12 +63,14 @@ services:
     container_name: bank_card_service
     env_file: .env
     environment:
+      PORT: 8081
       SERVER_PORT: 8081
       DB_URL: ${DB_URL}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
       - "8081:8081"
     depends_on:
@@ -86,6 +91,7 @@ services:
     container_name: bank_credit_service
     env_file: .env
     environment:
+      PORT: 8082
       SERVER_PORT: 8082
       DB_URL: ${DB_URL}
       DB_USER: ${DB_USER}
@@ -94,6 +100,8 @@ services:
       RABBITMQ_PORT: ${RABBITMQ_PORT}
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      RABBITMQ_SSL: ${RABBITMQ_SSL:-false}
     ports:
       - "8082:8082"
     depends_on:
@@ -114,6 +122,7 @@ services:
     container_name: bank_ai_collateral_service
     env_file: .env
     environment:
+      PORT: 8083
       SERVER_PORT: 8083
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL}
@@ -136,8 +145,14 @@ services:
     container_name: bank_frontend
     env_file: .env
     environment:
+      PORT: 5173
+      NGINX_PORT: 5173
+      CARD_SERVICE_URL: http://card-service:8081
+      CREDIT_SERVICE_URL: http://credit-service:8082
+      COLLATERAL_SERVICE_URL: http://ai-collateral-service:8083
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      SKIP_INFRA_PROBES: "false"
     ports:
       - "5173:5173"
     depends_on:

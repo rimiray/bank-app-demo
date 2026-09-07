@@ -6,6 +6,15 @@ calls in a Business Banking self-credit flow.
 
 [![CI](https://github.com/rimiray/bank-app-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/rimiray/bank-app-demo/actions/workflows/ci.yml)
 
+## Live Demo
+
+> **Public URL:** _pending Railway project link — see [docs/DEPLOY.md](docs/DEPLOY.md)._  
+> Hosting target: **Railway** (Docker services + managed Postgres/Redis).  
+> **RabbitMQ** uses **CloudAMQP Little Lemur** (free tier) — Railway has no free managed AMQP.
+
+After deploy, open the frontend URL above: Cards / Credit & Collateral / Architecture tabs should work;
+demo seed loads 3 cards and one approved credit application on empty databases.
+
 ## System Architecture
 
 ```mermaid

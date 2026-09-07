@@ -7,7 +7,7 @@ spring:
       max-request-size: 10MB
 
 server:
-  port: ${SERVER_PORT:8083}
+  port: ${PORT:${SERVER_PORT:8083}}
 
 gemini:
   api:
