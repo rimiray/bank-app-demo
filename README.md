@@ -9,7 +9,7 @@ calls in a Business Banking self-credit flow.
 ## Live Demo
 
 > **Public URL:** _pending — run `.\scripts\railway-up.ps1` (see [docs/DEPLOY.md](docs/DEPLOY.md))._  
-> Hosting: **Railway** via Infrastructure as Code (`.railway/railway.ts`).  
+> Hosting: **Railway** via `.\scripts\railway-up.ps1` (one command for the full stack).  
 > Do **not** deploy the GitHub repo root with Railpack — that fails; use the script so all services are created.
 
 After deploy, Cards / Credit & Collateral / Architecture tabs should work; empty databases are
@@ -62,7 +62,7 @@ flowchart TD
 | [Architecture ADR](docs/adr/0001-architecture-overview.md) | Contract-first polyglot services, event publish, AI model choice, and **explicit trade-offs** (Gateway, async gap, AI fallback, mobile) |
 | [12-month Roadmap](docs/ROADMAP.md) | Q1–Q4 path from PoC to production (security/gateway, mobile BFF & KMP, risk/event sourcing, observability) |
 | [Engineering Standards](docs/ENGINEERING_STANDARDS.md) | Definition of Done, target GitFlow, banking code-review checklist, testing pyramid |
-| [Deploy guide](docs/DEPLOY.md) | Railway one-command stack via `.railway/railway.ts` |
+| [Deploy guide](docs/DEPLOY.md) | Railway one-command stack via `.\scripts\railway-up.ps1` |
 
 **How we build today**
 
@@ -104,7 +104,6 @@ docker compose up --build
 
 ```powershell
 railway login
-railway link
 .\scripts\railway-up.ps1
 ```
 

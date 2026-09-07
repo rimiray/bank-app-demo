@@ -1,56 +1,81 @@
 # Live deployment on Railway
 
-One authoring file describes the whole stack: [`.railway/railway.ts`](../.railway/railway.ts).
+## Why `railway link` failed
 
-| Resource | How it runs |
-| --- | --- |
-| `postgres` | Railway managed Postgres |
-| `redis` | Railway managed Redis |
-| `rabbitmq` | Docker image `rabbitmq:3-management-alpine` |
-| `card-service` / `credit-service` / `ai-collateral-service` | Dockerfile + GitHub subdirectory |
-| `frontend` | Dockerfile; nginx proxies to private backend URLs |
+```
+Failed to prompt for options
+Available options can not be empty
+```
 
-## Stop: do not deploy the repo root
+Your workspace had **no usable (non-deleted) projects** for the interactive picker, so the
+CLI prompt got an empty list. Fix: create a project non-interactively:
 
-If Railway shows **one** service named like the repo, Builder **Railpack**, and the log says
-`Package-lock.json detected` / `No start command detected` — that is the wrong setup.
+```powershell
+railway init --name zbk-bank-demo
+```
 
-GitHub “Deploy this repo” on the **root** treats the monorepo as a single Node app. It will always fail.
+(or just run `.\scripts\railway-up.ps1`, which does this for you).
 
-**Fix:** delete that root service (or disconnect GitHub from it), then use the CLI flow below.
+## Plan limits (why the script stops mid-way)
 
-## One-command deploy (CLI + IaC)
+This stack needs **7 Railway services**:
+
+`Postgres` · `Redis` · `rabbitmq` · `card-service` · `credit-service` ·
+`ai-collateral-service` · `frontend`
+
+| Plan | Max services / project | Enough for full stack? |
+| --- | --- | --- |
+| Free | 3 | No |
+| Free Trial | 5 | No (script fails on the 6th) |
+| Hobby ($5/mo) | 50 | Yes |
+
+If you see `Free plan resource provision limit exceeded`, upgrade to **Hobby**, then re-run the
+script (it is idempotent and will only add what is missing).
+
+## Do not deploy the repo root
+
+A single GitHub service on `/` with **Railpack** will fail (monorepo, not a Node app).
+Delete that service. Use the script below instead.
+
+## One script → full stack (cloud)
 
 ```powershell
 railway login
-railway link                 # create/select project — once
+# Upgrade to Hobby in the Railway dashboard if you are on Free/Trial
 .\scripts\railway-up.ps1
 ```
 
-This applies `.railway/railway.ts` and creates **Postgres + Redis + RabbitMQ + 4 apps**.
-Then it generates a public domain for `frontend`.
+Creates (if missing) and wires:
 
-Optional Gemini key:
+| Service | Source |
+| --- | --- |
+| Postgres / Redis | Railway databases |
+| `rabbitmq` | Docker image |
+| `card-service` / `credit-service` / `ai-collateral-service` / `frontend` | GitHub + Dockerfile in subdirectory |
+
+Then generates a public domain for `frontend`.
+
+Optional:
 
 ```powershell
 railway variable set GEMINI_API_KEY=your_key --service ai-collateral-service
 ```
 
-## Prerequisites
+## Simplest local full stack (no Railway)
 
-1. [Railway CLI](https://docs.railway.com/guides/cli) (`npm i -g @railway/cli`)
-2. GitHub App connected so Railway can pull `rimiray/bank-app-demo`
-3. Latest `main` pushed (CI green)
+From the repo root:
 
-## Seed data
+```powershell
+docker compose up --build
+```
 
-Empty DBs get 3 demo cards and one approved credit application via `DemoDataSeeder`.
+Dashboard: http://localhost:5173
 
-## Local vs Railway env
+## After Railway works
 
-| Concern | Local Compose | Railway |
-| --- | --- | --- |
-| JDBC | `DB_URL=jdbc:postgresql://postgres:5432/bank_db` | `PGHOST` / `PG*` from Postgres plugin |
-| Redis | `REDIS_HOST=redis` | `SPRING_DATA_REDIS_URL` from Redis plugin |
-| RabbitMQ | compose service `rabbitmq` | private domain of `rabbitmq` service, port `5672` |
-| Frontend → APIs | compose DNS | `${{service.RAILWAY_PRIVATE_DOMAIN}}:${{service.PORT}}` |
+Paste the frontend URL into README **Live Demo**.
+
+## Note on `.railway/railway.ts`
+
+Kept as the desired-state description. The Windows CLI currently breaks `railway config apply`
+(IaC SDK version probe). The PowerShell script uses the stable imperative CLI instead.
