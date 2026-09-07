@@ -1,40 +1,103 @@
+# ZBK Business Banking Self-Credit Demo Platform
+
+Event-driven microservices demo for card lifecycle, credit scoring, and AI collateral
+evaluation — showcasing contract-first APIs, RabbitMQ integration, and resilient Gemini Vision
+calls in a Business Banking self-credit flow.
+
 [![CI](https://github.com/rimiray/bank-app-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/rimiray/bank-app-demo/actions/workflows/ci.yml)
 
-# bank-app-demo
-Event-Driven Microservices Architecture Demo (Spring Boot Java/Kotlin, React, RabbitMQ, Redis, PostgreSQL, Gemini API) for engineering practice.
+## System Architecture
 
-## Services
+```mermaid
+flowchart TD
+  SPA["React SPA :5173"]
+  Proxy["Vite Dev Proxy"]
+  Card["card-service :8081"]
+  Credit["credit-service :8082"]
+  AI["ai-collateral-service :8083"]
+  PG[("PostgreSQL")]
+  Redis[("Redis")]
+  MQ["RabbitMQ<br/>exchange bank.events"]
+  Gemini["Gemini API<br/>gemini-3.1-flash-lite"]
 
-| Service | Stack | Port | Responsibility |
-| --- | --- | --- | --- |
-| `card-service` | Kotlin, Spring Boot 3 | 8081 | Card issuance, balances, transactional rules (Postgres + Redis) |
-| `credit-service` | Java 21, Spring Boot 3 | 8082 | Annuity math, scoring, `CreditCalculatedEvent` via RabbitMQ |
-| `ai-collateral-service` | Java 21, Spring Boot 3 | 8083 | Collateral photo appraisal via `gemini-3.1-flash-lite` Vision API |
+  SPA --> Proxy
+  Proxy --> Card
+  Proxy --> Credit
+  Proxy --> AI
+  Card <--> PG
+  Card <--> Redis
+  Credit --> PG
+  Credit --> MQ
+  AI --> Gemini
+```
 
-## Getting started
+| Service | Stack | Port |
+| --- | --- | --- |
+| `card-service` | Kotlin, Spring Boot 3 | 8081 |
+| `credit-service` | Java 21, Spring Boot 3 | 8082 |
+| `ai-collateral-service` | Java 21, Spring Boot 3 | 8083 |
+| Frontend dashboard | React + Vite + TypeScript | 5173 |
+
+## Key Business Features
+
+| Feature | Description | Service |
+| --- | --- | --- |
+| **Cards** | Issue cards, top-up, purchase (balance + credit limit / debt), close and delete with business guards | `card-service` |
+| **Credit Scoring** | Annuity payment at configurable rate (default 8.5%), income-based approval, collateral-boosted limit; publishes `CreditCalculatedEvent` | `credit-service` |
+| **AI Collateral Evaluation** | Photo → Vision appraisal via `gemini-3.1-flash-lite`; retry with backoff, then heuristic fallback so credit flow stays available | `ai-collateral-service` |
+
+## Engineering Excellence & Process
+
+| Document | What you will find |
+| --- | --- |
+| [Architecture ADR](docs/adr/0001-architecture-overview.md) | Contract-first polyglot services, event publish, AI model choice, and **explicit trade-offs** (Gateway, async gap, AI fallback, mobile) |
+| [12-month Roadmap](docs/ROADMAP.md) | Q1–Q4 path from PoC to production (security/gateway, mobile BFF & KMP, risk/event sourcing, observability) |
+| [Engineering Standards](.github/ENGINEERING_STANDARDS.md) | Definition of Done, target GitFlow, banking code-review checklist, testing pyramid |
+
+**How we build today**
+
+- **Contract-First** — `docs/api/openapi.yaml` (OpenAPI 3.0) is the source of truth; CI lints it (`contract-lint`).
+- **Event-Driven** — `credit-service` publishes to RabbitMQ (`bank.events` / `credit.calculated`); card disbursement is still UI-orchestrated in the PoC (see ADR async gap → Roadmap Q3).
+- **AI Resilience** — retry + heuristic fallback now; Circuit Breaker planned on the Roadmap (Q3).
+
+## Quick Start
+
+### 1. Prerequisites
+
+- Java 21, Node.js 22+, Docker Desktop
+- Copy secrets template and set a Gemini key (optional for heuristic-only collateral):
 
 ```bash
-cp .env.example .env   # then set GEMINI_API_KEY
-docker compose up -d
+cp .env.example .env
+# edit .env → GEMINI_API_KEY=...
 ```
 
-Each service is built with its own Gradle wrapper:
+### 2. Infrastructure (one command)
+
+Postgres, Redis, and RabbitMQ:
 
 ```bash
-cd services/<service-name>
-./gradlew bootRun
+docker compose up --build -d
 ```
 
-## Configuration
+### 3. Applications (local processes)
 
-The Gemini model is externalised, so switching generations needs no code change:
+```bash
+# Terminals — one per service
+cd services/card-service && ./gradlew bootRun          # :8081
+cd services/credit-service && ./gradlew bootRun        # :8082
+cd services/ai-collateral-service && ./gradlew bootRun # :8083
 
+cd frontend && npm ci && npm run dev                   # :5173
 ```
-GEMINI_API_KEY=<your key>
-GEMINI_MODEL=gemini-3.1-flash-lite
+
+Open the dashboard at [http://localhost:5173](http://localhost:5173). APIs are reached through the Vite proxy to ports **8081 / 8082 / 8083**.
+
+### 4. Verify
+
+```bash
+cd services/card-service && ./gradlew test
+cd services/credit-service && ./gradlew test
 ```
 
-`ai-collateral-service` retries transient Gemini failures (`5xx`, `429`, network errors) with
-exponential backoff — `GEMINI_MAX_ATTEMPTS` (default 3) and `GEMINI_RETRY_DELAY_MS` (default 800).
-Once retries are exhausted it logs a WARN and falls back to a heuristic collateral estimate rather
-than failing the request.
+CI on every push/PR to `main`/`develop`: [GitHub Actions workflow](.github/workflows/ci.yml).
