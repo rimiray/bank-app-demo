@@ -6,8 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.bankapp.creditservice.repository.CreditApplicationRepository;
 
 @SpringBootTest(classes = CreditService.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
@@ -23,10 +23,10 @@ import com.bankapp.creditservice.repository.CreditApplicationRepository;
 })
 class CreditInterestRateConfigurationTest {
 
-    @MockBean
+    @MockitoBean
     private CreditApplicationRepository repository;
 
-    @MockBean
+    @MockitoBean
     private RabbitTemplate rabbitTemplate;
 
     @Autowired
