@@ -9,8 +9,8 @@ calls in a Business Banking self-credit flow.
 ## Live Demo
 
 > **Public URL:** _pending — run `.\scripts\railway-up.ps1` (see [docs/DEPLOY.md](docs/DEPLOY.md))._  
-> Hosting: **Railway** via Infrastructure as Code (`.railway/railway.ts`) — managed Postgres + Redis,
-> RabbitMQ Docker service, three JVM apps + nginx frontend.
+> Hosting: **Railway** via Infrastructure as Code (`.railway/railway.ts`).  
+> Do **not** deploy the GitHub repo root with Railpack — that fails; use the script so all services are created.
 
 After deploy, Cards / Credit & Collateral / Architecture tabs should work; empty databases are
 seeded with 3 demo cards and one approved credit application.
@@ -100,7 +100,7 @@ docker compose up --build
 | ai-collateral-service | http://localhost:8083 |
 | RabbitMQ UI | http://localhost:15672 |
 
-### 3. Deploy to Railway (one script)
+### 3. Deploy to Railway (CLI — not “Deploy repo root”)
 
 ```powershell
 railway login

@@ -1,0 +1,13 @@
+{
+  "name": "bank-app-demo-railway-iac",
+  "private": true,
+  "description": "Railway Infrastructure as Code SDK (not an app — do not deploy this folder)",
+  "scripts": {
+    "plan": "railway config plan",
+    "up": "railway config apply --yes",
+    "domain": "railway domain --service frontend"
+  },
+  "devDependencies": {
+    "railway": "^3.11.0"
+  }
+}

@@ -6,50 +6,41 @@ One authoring file describes the whole stack: [`.railway/railway.ts`](../.railwa
 | --- | --- |
 | `postgres` | Railway managed Postgres |
 | `redis` | Railway managed Redis |
-| `rabbitmq` | Docker image `rabbitmq:3-management-alpine` (no CloudAMQP account needed) |
-| `card-service` / `credit-service` / `ai-collateral-service` | Dockerfile + GitHub root directory |
+| `rabbitmq` | Docker image `rabbitmq:3-management-alpine` |
+| `card-service` / `credit-service` / `ai-collateral-service` | Dockerfile + GitHub subdirectory |
 | `frontend` | Dockerfile; nginx proxies to private backend URLs |
 
-## Prerequisites
+## Stop: do not deploy the repo root
 
-1. [Railway CLI](https://docs.railway.com/guides/cli) installed (`npm i -g @railway/cli`).
-2. GitHub repo `rimiray/bank-app-demo` connected to your Railway account (GitHub App).
-3. Latest `main` pushed (CI green).
+If Railway shows **one** service named like the repo, Builder **Railpack**, and the log says
+`Package-lock.json detected` / `No start command detected` — that is the wrong setup.
 
-## One-command style deploy
+GitHub “Deploy this repo” on the **root** treats the monorepo as a single Node app. It will always fail.
 
-From the repo root:
+**Fix:** delete that root service (or disconnect GitHub from it), then use the CLI flow below.
+
+## One-command deploy (CLI + IaC)
 
 ```powershell
-# 1) Login once (browser)
 railway login
-
-# 2) Link this folder to a Railway project (create new or pick existing)
-railway link
-
-# 3) Install IaC SDK + apply the full graph (Postgres, Redis, RabbitMQ, 4 apps)
-npm install
-npm run railway:up
-
-# 4) Public URL for the dashboard
-npm run railway:domain
-
-# 5) Optional: Gemini key for real Vision (otherwise heuristic fallback)
-railway variable set GEMINI_API_KEY=your_key --service ai-collateral-service
-```
-
-Or run the helper script:
-
-```powershell
+railway link                 # create/select project — once
 .\scripts\railway-up.ps1
 ```
 
-After apply finishes and deployments are healthy, put the frontend domain into README **Live Demo**.
+This applies `.railway/railway.ts` and creates **Postgres + Redis + RabbitMQ + 4 apps**.
+Then it generates a public domain for `frontend`.
 
-## What went wrong with the first GitHub deploy?
+Optional Gemini key:
 
-A single service on **repo root** with **Railpack** cannot build this monorepo.
-Use `.railway/railway.ts` (or create empty services with Root Directory + Dockerfile) instead.
+```powershell
+railway variable set GEMINI_API_KEY=your_key --service ai-collateral-service
+```
+
+## Prerequisites
+
+1. [Railway CLI](https://docs.railway.com/guides/cli) (`npm i -g @railway/cli`)
+2. GitHub App connected so Railway can pull `rimiray/bank-app-demo`
+3. Latest `main` pushed (CI green)
 
 ## Seed data
 
@@ -62,4 +53,4 @@ Empty DBs get 3 demo cards and one approved credit application via `DemoDataSeed
 | JDBC | `DB_URL=jdbc:postgresql://postgres:5432/bank_db` | `PGHOST` / `PG*` from Postgres plugin |
 | Redis | `REDIS_HOST=redis` | `SPRING_DATA_REDIS_URL` from Redis plugin |
 | RabbitMQ | compose service `rabbitmq` | private domain of `rabbitmq` service, port `5672` |
-| Frontend → APIs | compose DNS names | `${{service.RAILWAY_PRIVATE_DOMAIN}}:${{service.PORT}}` |
+| Frontend → APIs | compose DNS | `${{service.RAILWAY_PRIVATE_DOMAIN}}:${{service.PORT}}` |
