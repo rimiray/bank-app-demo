@@ -1,0 +1,4 @@
+﻿# Keep Unix wrapper scripts with LF so Linux CI can execute them.
+gradlew text eol=lf
+*.bat text eol=crlf
+*.jar binary
