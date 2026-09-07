@@ -38,7 +38,7 @@ PoC we optimise for “clone → `docker compose up` → `bootRun` / `npm run de
 infra cost. Cross-cutting concerns (auth, rate limits, unified base path) are not yet required
 to demonstrate cards, credit math, RabbitMQ publish, or Gemini collateral evaluation.
 
-**When it changes:** Introduce a real edge gateway in **[Roadmap Q1](../ROADMAP.md#q1--edge--api-composition)** —
+**When it changes:** Introduce a real edge gateway in **[Roadmap Q1 — Core & Security](../ROADMAP.md#q1--core--security)** —
 routing, authn/authz, and request correlation move out of the Vite proxy into Spring Cloud
 Gateway (or equivalent) while OpenAPI remains the contract source of truth.
 
@@ -55,10 +55,10 @@ the learning goals—annuity math, OpenAPI contract, and a visible event publish
 distributed-transaction machinery. Explicit UI steps keep the demo scenario predictable and
 easy to step through in a review.
 
-**When it changes:** In **[Roadmap Q3](../ROADMAP.md#q3--event-driven-completion--event-sourcing)**
+**When it changes:** In **[Roadmap Q3 — Risk Engine & Event Sourcing](../ROADMAP.md#q3--risk-engine--event-sourcing)**
 add a `card-service` consumer for `CreditCalculatedEvent`, then harden with outbox/SAGA (and
-evaluate Event Sourcing for monetary mutations) so production disbursement is broker-driven,
-not UI-driven.
+evaluate Event Sourcing for credit decision / monetary audit) so production disbursement is
+broker-driven, not UI-driven.
 
 ### 3. AI Fallback Strategy
 
@@ -76,7 +76,7 @@ no SLA pressure. A Circuit Breaker (e.g. **Resilience4j**) adds state, tuning, a
 we have not needed under demo load.
 
 **When it changes:** Add a Circuit Breaker (e.g. Resilience4j) in
-**[Roadmap Q3](../ROADMAP.md#q3--event-driven-completion--event-sourcing)** once we face real
+**[Roadmap Q3 — Risk Engine & Event Sourcing](../ROADMAP.md#q3--risk-engine--event-sourcing)** once we face real
 provider outage/latency patterns or commit to an availability SLA for collateral evaluation.
 Retry + heuristic fallback remain the first resilience tier; the model stays configurable via
 `GEMINI_*`.
@@ -91,6 +91,7 @@ sit behind a thin BFF) without a separate native app.
 architectural weight—toolchains, CI matrix, API surface ownership. For a PoC with one web
 client, that complexity would not buy a second shippable surface.
 
-**When it changes:** Treat KMP as a strategic initiative in
-**[Roadmap Q2](../ROADMAP.md#q2--mobile-strategy-kmp)** once a concrete native client would
-otherwise duplicate domain rules; until then, keep one contract and one web client path.
+**When it changes:** Treat BFF + KMP as the strategic mobile track in
+**[Roadmap Q2 — Mobile BFF & KMP Core](../ROADMAP.md#q2--mobile-bff--kmp-core)** once a concrete
+native client would otherwise duplicate domain rules; until then, keep one contract and one
+web client path.
