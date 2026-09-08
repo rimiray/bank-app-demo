@@ -4,6 +4,7 @@ import { evaluateCollateral } from '../api/collateral'
 import { calculateCredit } from '../api/credit'
 import { ApiError, money } from '../api/client'
 import { upsertCardInList } from '../lib/cardsOrder'
+import { formatStatus } from '../lib/formatStatus'
 import type {
   CardResponse,
   CollateralEvaluationResponse,
@@ -120,7 +121,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
     <div className="animate-fade-up space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl font-bold tracking-tight">Credit & AI Collateral</h2>
+          <h2 className="text-xl font-bold">Credit & AI Collateral</h2>
           <p className="mt-1 text-sm text-bank-ink/55">
             Step-by-step flow · AI appraisal then annuity scoring
           </p>
@@ -132,7 +133,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
                 type="button"
                 onClick={() => setStep(n as Step)}
                 className={[
-                  'flex h-9 w-9 items-center justify-center rounded-full font-display text-sm font-bold transition',
+                  'figure flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition',
                   step === n
                     ? 'bg-bank-teal text-white'
                     : 'bg-white text-bank-ink/50 ring-1 ring-bank-line',
@@ -150,9 +151,10 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
       {step === 1 && (
         <section className="panel grid gap-6 p-5 sm:p-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <h3 className="font-display text-lg font-bold">Step 1 · Upload collateral photo</h3>
+            <h3 className="text-lg font-semibold">Step 1 · Upload collateral photo</h3>
             <p className="mt-1 text-sm text-bank-ink/55">
-              POST <span className="font-mono text-xs">localhost:8083/api/v1/collateral/evaluate</span>
+              POST{' '}
+              <span className="figure text-xs">localhost:8083/api/v1/collateral/evaluate</span>
             </p>
 
             <label
@@ -188,7 +190,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
                 />
               ) : (
                 <>
-                  <span className="font-display text-base font-bold">Drop photo here</span>
+                  <span className="text-base font-semibold">Drop photo here</span>
                   <span className="mt-1 text-sm text-bank-ink/45">or click to browse · JPG / PNG</span>
                 </>
               )}
@@ -205,12 +207,12 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
           </div>
 
           <div className="rounded-2xl bg-bank-ink p-5 text-white">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-bank-teal">AI result</p>
+            <p className="text-xs font-medium text-bank-teal">AI result</p>
             {collateral ? (
               <dl className="mt-4 space-y-4">
                 <div>
                   <dt className="text-xs text-white/50">Object</dt>
-                  <dd className="font-display text-xl font-bold">{collateral.objectDetected}</dd>
+                  <dd className="text-lg font-semibold">{collateral.objectDetected}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-white/50">Condition</dt>
@@ -218,7 +220,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
                 </div>
                 <div>
                   <dt className="text-xs text-white/50">Estimated value</dt>
-                  <dd className="font-display text-2xl font-bold text-bank-teal">
+                  <dd className="figure text-xl font-semibold text-bank-teal">
                     {money(collateral.estimatedValueEur)}
                   </dd>
                 </div>
@@ -235,9 +237,9 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
       {step === 2 && (
         <section className="panel grid gap-6 p-5 sm:p-6 lg:grid-cols-2">
           <div>
-            <h3 className="font-display text-lg font-bold">Step 2 · Credit calculator</h3>
+            <h3 className="text-lg font-semibold">Step 2 · Credit calculator</h3>
             <p className="mt-1 text-sm text-bank-ink/55">
-              POST <span className="font-mono text-xs">localhost:8082/api/v1/credits/calculate</span>
+              POST <span className="figure text-xs">localhost:8082/api/v1/credits/calculate</span>
             </p>
 
             <div className="mt-5 space-y-4">
@@ -263,7 +265,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
               <label className="block">
                 <span className="label">Requested amount (EUR)</span>
                 <input
-                  className="field"
+                  className="field figure"
                   type="number"
                   min="0.01"
                   step="0.01"
@@ -274,7 +276,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
               <label className="block">
                 <span className="label">Monthly income (EUR)</span>
                 <input
-                  className="field"
+                  className="field figure"
                   type="number"
                   min="0.01"
                   step="0.01"
@@ -285,7 +287,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
               <label className="block">
                 <span className="label">Term (months)</span>
                 <input
-                  className="field"
+                  className="field figure"
                   type="number"
                   min="1"
                   max="120"
@@ -296,7 +298,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
               <label className="block">
                 <span className="label">AI collateral value (auto)</span>
                 <input
-                  className="field bg-bank-mist/70"
+                  className="field figure bg-bank-mist/70"
                   type="number"
                   readOnly
                   value={collateralValue}
@@ -321,40 +323,36 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
           </div>
 
           <div className="rounded-2xl border border-bank-line bg-bank-sand/50 p-5">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-bank-ink/45">Verdict</p>
+            <p className="text-xs font-medium text-bank-ink/45">Verdict</p>
             {result ? (
               <div className="mt-4 space-y-5">
                 <div
                   className={[
-                    'inline-flex rounded-full px-3 py-1 font-display text-sm font-bold uppercase tracking-wide',
+                    'status-pill',
                     result.status === 'APPROVED'
                       ? 'bg-bank-success/15 text-bank-success'
                       : 'bg-bank-danger/15 text-bank-danger',
                   ].join(' ')}
                 >
-                  {result.status}
+                  {formatStatus(result.status)}
                 </div>
                 <dl className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <dt className="text-xs text-bank-ink/45">Monthly payment</dt>
-                    <dd className="font-display text-2xl font-bold">
-                      {money(result.monthlyPayment)}
-                    </dd>
+                    <dd className="figure text-xl font-semibold">{money(result.monthlyPayment)}</dd>
                   </div>
                   <div>
                     <dt className="text-xs text-bank-ink/45">Approved limit</dt>
-                    <dd className="font-display text-2xl font-bold">
-                      {money(result.approvedLimit)}
-                    </dd>
+                    <dd className="figure text-xl font-semibold">{money(result.approvedLimit)}</dd>
                   </div>
                   <div>
                     <dt className="text-xs text-bank-ink/45">Interest rate</dt>
-                    <dd className="font-mono text-lg">{result.interestRate}%</dd>
+                    <dd className="figure text-lg">{result.interestRate}%</dd>
                   </div>
                   {collateral && (
                     <div>
                       <dt className="text-xs text-bank-ink/45">Collateral boost</dt>
-                      <dd className="font-mono text-lg">{money(collateral.estimatedValueEur)}</dd>
+                      <dd className="figure text-lg">{money(collateral.estimatedValueEur)}</dd>
                     </div>
                   )}
                 </dl>
@@ -362,9 +360,10 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
                 {result.status === 'APPROVED' && (
                   <div className="space-y-2 border-t border-bank-line/70 pt-4">
                     <p className="text-sm text-bank-ink/55">
-                      Disburse <strong>{money(Number(requestedAmount))}</strong> to card balance, record the
-                      same amount as taken credit / debt, and raise credit limit to at least{' '}
-                      <strong>{money(result.approvedLimit)}</strong>.
+                      Disburse <strong className="figure">{money(Number(requestedAmount))}</strong> to
+                      card balance, record the same amount as taken credit / debt, and raise credit
+                      limit to at least{' '}
+                      <strong className="figure">{money(result.approvedLimit)}</strong>.
                     </p>
                     <button
                       type="button"

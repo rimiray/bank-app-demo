@@ -36,17 +36,11 @@ export default function App() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-bank-ink shadow-soft">
-                <span className="font-display text-sm font-extrabold tracking-tight text-bank-teal">
-                  ZBK
-                </span>
+                <span className="text-sm font-bold text-bank-teal">ZBK</span>
               </div>
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-bank-teal-dark">
-                  FinTech demo platform
-                </p>
-                <h1 className="font-display text-3xl font-extrabold tracking-tight text-bank-ink sm:text-4xl">
-                  ZBK Bank Demo
-                </h1>
+                <p className="text-xs font-medium text-bank-teal-dark">FinTech demo platform</p>
+                <h1 className="text-2xl font-bold text-bank-ink">ZBK Bank Demo</h1>
               </div>
             </div>
             <p className="max-w-xs text-right text-sm text-bank-ink/50">

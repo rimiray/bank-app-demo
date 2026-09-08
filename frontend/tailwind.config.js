@@ -2,6 +2,25 @@
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
+    // Replace defaults so font-extrabold / sub-12px sizes cannot leak in.
+    fontFamily: {
+      sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+      mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
+    },
+    fontSize: {
+      xs: ['var(--text-xs)', { lineHeight: 'var(--leading-xs)' }],
+      sm: ['var(--text-sm)', { lineHeight: 'var(--leading-sm)' }],
+      base: ['var(--text-base)', { lineHeight: 'var(--leading-base)' }],
+      lg: ['var(--text-lg)', { lineHeight: 'var(--leading-lg)' }],
+      xl: ['var(--text-xl)', { lineHeight: 'var(--leading-xl)' }],
+      '2xl': ['var(--text-2xl)', { lineHeight: 'var(--leading-2xl)' }],
+    },
+    fontWeight: {
+      normal: '400',
+      medium: '500',
+      semibold: '600',
+      bold: '700',
+    },
     extend: {
       colors: {
         bank: {
@@ -16,19 +35,13 @@ export default {
           warn: '#C47A12',
         },
       },
-      fontFamily: {
-        display: ['"Syne"', 'system-ui', 'sans-serif'],
-        sans: ['"Manrope"', 'system-ui', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
-      },
       boxShadow: {
         card: '0 18px 40px -24px rgba(11, 31, 42, 0.45)',
         soft: '0 10px 30px -18px rgba(0, 160, 200, 0.35)',
       },
       backgroundImage: {
-        'mesh':
-          'radial-gradient(ellipse 80% 60% at 10% -10%, rgba(0,160,200,0.18), transparent 55%), radial-gradient(ellipse 60% 50% at 100% 0%, rgba(11,31,42,0.08), transparent 50%), linear-gradient(180deg, #F5F7F6 0%, #EEF3F5 100%)',
-        'plastic':
+        mesh: 'radial-gradient(ellipse 80% 60% at 10% -10%, rgba(0,160,200,0.18), transparent 55%), radial-gradient(ellipse 60% 50% at 100% 0%, rgba(11,31,42,0.08), transparent 50%), linear-gradient(180deg, #F5F7F6 0%, #EEF3F5 100%)',
+        plastic:
           'linear-gradient(135deg, #0B1F2A 0%, #123447 40%, #007A9A 78%, #00A0C8 100%)',
       },
       keyframes: {

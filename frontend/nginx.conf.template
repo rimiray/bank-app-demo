@@ -6,7 +6,9 @@ server {
     index index.html;
 
     location / {
-        try_files $$uri $$uri/ /index.html;
+        # Use single-dollar nginx vars. Image envsubst only fills env-defined
+        # names; doubled dollars stay as "$$uri" and break nginx startup.
+        try_files $uri $uri/ /index.html;
     }
 
     location = /api/health {
@@ -18,60 +20,60 @@ server {
     location /api/v1/cards/ {
         proxy_pass ${CARD_SERVICE_URL}/api/v1/cards/;
         proxy_http_version 1.1;
-        proxy_set_header Host $$host;
-        proxy_set_header X-Real-IP $$remote_addr;
-        proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         client_max_body_size 10m;
     }
 
     location = /api/v1/cards {
         proxy_pass ${CARD_SERVICE_URL}/api/v1/cards;
         proxy_http_version 1.1;
-        proxy_set_header Host $$host;
-        proxy_set_header X-Real-IP $$remote_addr;
-        proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         client_max_body_size 10m;
     }
 
     location /api/v1/credits/ {
         proxy_pass ${CREDIT_SERVICE_URL}/api/v1/credits/;
         proxy_http_version 1.1;
-        proxy_set_header Host $$host;
-        proxy_set_header X-Real-IP $$remote_addr;
-        proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         client_max_body_size 10m;
     }
 
     location = /api/v1/credits {
         proxy_pass ${CREDIT_SERVICE_URL}/api/v1/credits;
         proxy_http_version 1.1;
-        proxy_set_header Host $$host;
-        proxy_set_header X-Real-IP $$remote_addr;
-        proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         client_max_body_size 10m;
     }
 
     location /api/v1/collateral/ {
         proxy_pass ${COLLATERAL_SERVICE_URL}/api/v1/collateral/;
         proxy_http_version 1.1;
-        proxy_set_header Host $$host;
-        proxy_set_header X-Real-IP $$remote_addr;
-        proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         client_max_body_size 12m;
     }
 
     location = /api/v1/collateral {
         proxy_pass ${COLLATERAL_SERVICE_URL}/api/v1/collateral;
         proxy_http_version 1.1;
-        proxy_set_header Host $$host;
-        proxy_set_header X-Real-IP $$remote_addr;
-        proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         client_max_body_size 12m;
     }
 }

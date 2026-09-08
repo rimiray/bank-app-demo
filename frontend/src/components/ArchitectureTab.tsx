@@ -60,14 +60,14 @@ export function ArchitectureTab() {
     <div className="animate-fade-up space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl font-bold tracking-tight">System Architecture</h2>
+          <h2 className="text-xl font-bold">System Architecture</h2>
           <p className="mt-1 text-sm text-bank-ink/55">
             Live probes against microservices and infra ports
             {health && (
               <>
                 {' '}
                 · last check{' '}
-                <span className="font-mono text-xs">
+                <span className="figure text-xs">
                   {new Date(health.checkedAt).toLocaleTimeString()}
                 </span>
               </>
@@ -80,7 +80,12 @@ export function ArchitectureTab() {
       </div>
 
       <div className="panel overflow-hidden p-4 sm:p-6">
-        <svg viewBox="0 0 680 300" className="h-auto w-full" role="img" aria-label="Service topology">
+        <svg
+          viewBox="0 0 680 300"
+          className="h-auto w-full font-sans text-bank-ink"
+          role="img"
+          aria-label="Service topology"
+        >
           <defs>
             <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
               <path d="M0,0 L6,3 L0,6 Z" fill="#C5D5DC" />
@@ -130,11 +135,11 @@ export function ArchitectureTab() {
                     />
                   )}
                 </circle>
-                <text x={32} y={26} className="fill-bank-ink" style={{ fontSize: 13, fontWeight: 700 }}>
+                <text x={32} y={26} className="fill-bank-ink text-sm font-bold">
                   {s?.name ?? node.key}
                 </text>
-                <text x={18} y={48} style={{ fontSize: 11, fill: '#6b8490', fontFamily: 'IBM Plex Mono, monospace' }}>
-                  :{s?.port ?? node.key} · {up ? 'UP' : 'DOWN'}
+                <text x={18} y={48} className="figure fill-bank-ink/45 text-xs">
+                  :{s?.port ?? '—'} · {up ? 'Up' : 'Down'}
                 </text>
               </g>
             )
@@ -147,7 +152,7 @@ export function ArchitectureTab() {
           const s = services?.[node.key]
           const up = s?.up ?? false
           const name = s?.name ?? node.key
-          const port = s?.port ?? node.key
+          const port = s?.port ?? '—'
           if (loading && !services) {
             return <div key={node.key} className="panel h-16 animate-pulse bg-bank-mist/80" />
           }
@@ -160,16 +165,16 @@ export function ArchitectureTab() {
                 ].join(' ')}
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-display text-sm font-bold">{name}</p>
-                <p className="font-mono text-[11px] text-bank-ink/45">port {port}</p>
+                <p className="truncate text-sm font-semibold">{name}</p>
+                <p className="figure text-xs text-bank-ink/45">port {port}</p>
               </div>
               <span
                 className={[
-                  'rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider',
+                  'status-pill',
                   up ? 'bg-bank-success/15 text-bank-success' : 'bg-bank-danger/15 text-bank-danger',
                 ].join(' ')}
               >
-                {up ? 'healthy' : 'offline'}
+                {up ? 'Healthy' : 'Offline'}
               </span>
             </div>
           )

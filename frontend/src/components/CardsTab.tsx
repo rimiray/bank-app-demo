@@ -2,6 +2,7 @@
 import { closeCard, deleteCard, getCards, issueCard, purchaseCard, topUpCard } from '../api/cards'
 import { ApiError, money } from '../api/client'
 import { upsertCardInList } from '../lib/cardsOrder'
+import { formatStatus } from '../lib/formatStatus'
 import type { CardResponse } from '../types'
 
 function statusTone(status: string): string {
@@ -39,18 +40,12 @@ function PlasticCard({
       <div className="pointer-events-none absolute -bottom-12 left-10 h-40 w-40 rounded-full bg-bank-teal/30 blur-2xl" />
 
       <div className="relative flex shrink-0 items-start justify-between gap-2">
-        <span className="font-display text-base font-extrabold tracking-tight sm:text-lg">
-          ZBK Bank
-        </span>
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusTone(card.status)}`}
-        >
-          {card.status}
-        </span>
+        <span className="text-base font-semibold">ZBK Bank</span>
+        <span className={`status-pill ${statusTone(card.status)}`}>{formatStatus(card.status)}</span>
       </div>
 
       <p
-        className="relative mt-3 w-full min-w-0 overflow-hidden whitespace-nowrap font-mono text-sm tracking-wide tabular-nums sm:mt-4 sm:text-base"
+        className="figure relative mt-3 w-full min-w-0 overflow-hidden whitespace-nowrap text-sm sm:mt-4 sm:text-base"
         title={card.cardNumberMasked}
       >
         {card.cardNumberMasked}
@@ -58,41 +53,34 @@ function PlasticCard({
 
       <div className="relative mt-auto grid min-w-0 grid-cols-2 gap-x-3 gap-y-2 pt-3">
         <div className="min-w-0">
-          <p className="text-[9px] uppercase tracking-wider text-white/55 sm:text-[10px]">Balance</p>
+          <p className="text-xs text-white/55">Balance</p>
           <p
-            className="truncate font-display text-sm font-bold tabular-nums sm:text-base"
+            className="figure truncate text-sm font-semibold sm:text-base"
             title={money(card.balance, card.currency)}
           >
             {money(card.balance, card.currency)}
           </p>
         </div>
         <div className="min-w-0 text-right">
-          <p className="text-[9px] uppercase tracking-wider text-white/55 sm:text-[10px]">
-            Credit limit
-          </p>
+          <p className="text-xs text-white/55">Credit limit</p>
           <p
-            className="truncate font-mono text-xs tabular-nums sm:text-sm"
+            className="figure truncate text-sm"
             title={money(card.creditLimit, card.currency)}
           >
             {money(card.creditLimit, card.currency)}
           </p>
         </div>
         <div className="min-w-0">
-          <p className="text-[9px] uppercase tracking-wider text-white/55 sm:text-[10px]">
-            Taken credit
-          </p>
-          <p
-            className="truncate font-mono text-xs tabular-nums sm:text-sm"
-            title={money(loan, card.currency)}
-          >
+          <p className="text-xs text-white/55">Taken credit</p>
+          <p className="figure truncate text-sm" title={money(loan, card.currency)}>
             {money(loan, card.currency)}
           </p>
         </div>
         <div className="min-w-0 text-right">
-          <p className="text-[9px] uppercase tracking-wider text-white/55 sm:text-[10px]">Debt</p>
+          <p className="text-xs text-white/55">Debt</p>
           <p
             className={[
-              'truncate font-mono text-xs font-semibold tabular-nums sm:text-sm',
+              'figure truncate text-sm font-semibold',
               debt > 0 ? 'text-amber-200' : 'text-white/90',
             ].join(' ')}
             title={money(debt, card.currency)}
@@ -131,7 +119,6 @@ export function CardsTab({
   const showLoading = (initialLoading && cards.length === 0) || loading
   const balanceNum = selected != null ? Number(selected.balance) : NaN
   const debtNum = selected != null ? Number(selected.activeDebt ?? 0) : NaN
-  // Matches card-service: no active debt and balance is not negative.
   const selectedClosed = selected?.status.toUpperCase() === 'CLOSED'
   const canClose =
     selectedActive &&
@@ -153,7 +140,8 @@ export function CardsTab({
       return {
         tone: 'info',
         title: 'Select a card',
-        detail: 'Active cards can be closed here. After closing, this panel switches to permanent delete.',
+        detail:
+          'Active cards can be closed here. After closing, this panel switches to permanent delete.',
       }
     }
     if (selectedClosed) {
@@ -183,8 +171,8 @@ export function CardsTab({
     if (!selectedActive) {
       return {
         tone: 'info',
-        title: `Status: ${selected.status}`,
-        detail: 'Only ACTIVE cards can be closed, and only CLOSED cards can be deleted here.',
+        title: `Status: ${formatStatus(selected.status)}`,
+        detail: 'Only Active cards can be closed, and only Closed cards can be deleted here.',
       }
     }
     if (Number.isFinite(debtNum) && debtNum > 0) {
@@ -272,9 +260,9 @@ export function CardsTab({
       <section className="space-y-4">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <h2 className="font-display text-2xl font-bold tracking-tight">Plastic cards</h2>
+            <h2 className="text-xl font-bold">Plastic cards</h2>
             <p className="mt-1 text-sm text-bank-ink/55">
-              Live data from <span className="font-mono text-bank-teal-dark">localhost:8081</span>
+              Live data from <span className="figure text-bank-teal-dark">localhost:8081</span>
             </p>
           </div>
           <button type="button" className="btn-secondary" onClick={() => void refresh()} disabled={loading}>
@@ -306,9 +294,9 @@ export function CardsTab({
 
       <aside className="panel space-y-6 p-5 sm:p-6">
         <div>
-          <h3 className="font-display text-lg font-bold">Issue a new card</h3>
+          <h3 className="text-lg font-semibold">Issue a new card</h3>
           <p className="mt-1 text-sm text-bank-ink/55">
-            POST <span className="font-mono text-xs">/api/v1/cards</span>
+            POST <span className="figure text-xs">/api/v1/cards</span>
           </p>
           <button
             type="button"
@@ -323,17 +311,21 @@ export function CardsTab({
         <div className="h-px bg-bank-line/80" />
 
         <div>
-          <h3 className="font-display text-lg font-bold">Balance operations</h3>
+          <h3 className="text-lg font-semibold">Balance operations</h3>
           <p className="mt-1 text-sm text-bank-ink/55">
-            {selected
-              ? `Selected · ${selected.cardNumberMasked}`
-              : 'Select a card to top-up or purchase'}
+            {selected ? (
+              <>
+                Selected · <span className="figure">{selected.cardNumberMasked}</span>
+              </>
+            ) : (
+              'Select a card to top-up or purchase'
+            )}
           </p>
 
           <label className="mt-4 block">
             <span className="label">Amount (EUR)</span>
             <input
-              className="field"
+              className="field figure"
               type="number"
               min="0.01"
               step="0.01"
@@ -377,18 +369,19 @@ export function CardsTab({
         <div className="h-px bg-bank-line/80" />
 
         <div>
-          <h3 className="font-display text-lg font-bold">
+          <h3 className="text-lg font-semibold">
             {selectedClosed ? 'Delete card' : 'Close card'}
           </h3>
           <p className="mt-1 text-sm text-bank-ink/55">
             {selectedClosed ? (
               <>
-                DELETE <span className="font-mono text-xs">/cards/&#123;id&#125;</span>
+                DELETE <span className="figure text-xs">/cards/{'{id}'}</span>
               </>
             ) : (
               <>
-                POST <span className="font-mono text-xs">/cards/&#123;id&#125;/close</span>
-                {' '}· then delete when closed
+                POST <span className="figure text-xs">/cards/{'{id}'}/close</span>
+                {' '}
+                · then delete when closed
               </>
             )}
           </p>

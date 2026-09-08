@@ -30,12 +30,10 @@ export function Tabs({ active, onChange }: Props) {
                 : 'text-bank-ink/70 hover:bg-bank-mist hover:text-bank-ink',
             ].join(' ')}
           >
-            <span className="font-display text-sm font-bold tracking-tight sm:text-base">
-              {tab.label}
-            </span>
+            <span className="text-sm font-semibold sm:text-base">{tab.label}</span>
             <span
               className={[
-                'mt-0.5 font-mono text-[10px] uppercase tracking-wider',
+                'figure mt-0.5 text-xs',
                 selected ? 'text-bank-teal' : 'text-bank-ink/40',
               ].join(' ')}
             >
