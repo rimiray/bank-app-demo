@@ -7,6 +7,7 @@ import org.springframework.data.redis.serializer.SerializationException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
+import org.springframework.web.servlet.resource.NoResourceFoundException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
@@ -20,6 +21,12 @@ class GlobalExceptionHandler {
         ex: CardNotFoundException,
         request: HttpServletRequest,
     ): ResponseEntity<ApiError> = error(HttpStatus.NOT_FOUND, ex.message, request)
+
+    @ExceptionHandler(NoResourceFoundException::class)
+    fun handleNoResource(
+        ex: NoResourceFoundException,
+        request: HttpServletRequest,
+    ): ResponseEntity<ApiError> = error(HttpStatus.NOT_FOUND, "Not found", request)
 
     @ExceptionHandler(InsufficientFundsException::class)
     fun handleInsufficientFunds(

@@ -27,9 +27,13 @@ spring:
 management:
   endpoints:
     web:
+      discovery:
+        enabled: false
       exposure:
+        # Public surface: health only (Railway/Compose probes + frontend healthprobe.sh).
         include: health
   endpoint:
     health:
+      show-details: never
       probes:
         enabled: true

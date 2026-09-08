@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -20,6 +21,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleGeminiApi(GeminiApiException ex, HttpServletRequest request) {
         log.warn("Gemini API error on {}: {}", request.getRequestURI(), ex.getMessage());
         return ResponseEntity.status(ex.getStatus()).body(error(ex.getStatus(), ex.getMessage()));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error(HttpStatus.NOT_FOUND, "Not found"));
     }
 
     @ExceptionHandler({
