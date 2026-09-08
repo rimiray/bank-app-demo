@@ -8,8 +8,9 @@ calls in a Business Banking self-credit flow.
 
 ## Live Demo
 
-> **Public URL:** _pending — run `.\scripts\railway-up.ps1` (see [docs/DEPLOY.md](docs/DEPLOY.md))._  
+> **Public URL:** https://frontend-production-f6c0.up.railway.app  
 > Hosting: **Railway** via `.\scripts\railway-up.ps1` (one command for the full stack).  
+> Only the frontend has a public domain; backends stay on Railway private networking.  
 > Do **not** deploy the GitHub repo root with Railpack — that fails; use the script so all services are created.
 
 After deploy, Cards / Credit & Collateral / Architecture tabs should work; empty databases are
@@ -60,15 +61,15 @@ flowchart TD
 | Document | What you will find |
 | --- | --- |
 | [Architecture ADR](docs/adr/0001-architecture-overview.md) | Contract-first polyglot services, event publish, AI model choice, and **explicit trade-offs** (Gateway, async gap, AI fallback, mobile) |
-| [12-month Roadmap](docs/ROADMAP.md) | Q1–Q4 path from PoC to production (security/gateway, mobile BFF & KMP, risk/event sourcing, observability) |
+| [12-month Roadmap](docs/ROADMAP.md) | Q1âQ4 path from PoC to production (security/gateway, mobile BFF & KMP, risk/event sourcing, observability) |
 | [Engineering Standards](docs/ENGINEERING_STANDARDS.md) | Definition of Done, target GitFlow, banking code-review checklist, testing pyramid |
 | [Deploy guide](docs/DEPLOY.md) | Railway one-command stack via `.\scripts\railway-up.ps1` |
 
 **How we build today**
 
-- **Contract-First** — `docs/api/openapi.yaml` (OpenAPI 3.0) is the source of truth; CI lints it (`contract-lint`).
-- **Event-Driven** — `credit-service` publishes to RabbitMQ (`bank.events` / `credit.calculated`); card disbursement is still UI-orchestrated in the PoC (see ADR async gap → Roadmap Q3).
-- **AI Resilience** — retry + heuristic fallback now; Circuit Breaker planned on the Roadmap (Q3).
+- **Contract-First** â `docs/api/openapi.yaml` (OpenAPI 3.0) is the source of truth; CI lints it (`contract-lint`).
+- **Event-Driven** â `credit-service` publishes to RabbitMQ (`bank.events` / `credit.calculated`); card disbursement is still UI-orchestrated in the PoC (see ADR async gap â Roadmap Q3).
+- **AI Resilience** â retry + heuristic fallback now; Circuit Breaker planned on the Roadmap (Q3).
 
 ## Quick Start
 
@@ -76,11 +77,11 @@ flowchart TD
 
 - Docker Desktop (for the all-in-one stack)
 - Optional for IDE runs: Java 21, Node.js 22+
-- Copy secrets template and set a Gemini key (optional — without it, collateral uses heuristic fallback):
+- Copy secrets template and set a Gemini key (optional â without it, collateral uses heuristic fallback):
 
 ```bash
 cp .env.example .env
-# edit .env → GEMINI_API_KEY=...
+# edit .env â GEMINI_API_KEY=...
 ```
 
 `.env.example` uses **Docker network hostnames** (`postgres`, `redis`, `rabbitmq`) in `DB_URL` /
@@ -100,7 +101,7 @@ docker compose up --build
 | ai-collateral-service | http://localhost:8083 |
 | RabbitMQ UI | http://localhost:15672 |
 
-### 3. Deploy to Railway (CLI — not “Deploy repo root”)
+### 3. Deploy to Railway (CLI â not âDeploy repo rootâ)
 
 ```powershell
 railway login
