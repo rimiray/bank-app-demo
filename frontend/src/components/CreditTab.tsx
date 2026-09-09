@@ -33,6 +33,8 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  /** True only while the current photo has a successful AI evaluation (CTA hint). */
+  const [isEvaluationFresh, setIsEvaluationFresh] = useState(false)
 
   const activeCards = useMemo(
     () => cards.filter((c) => c.status.toUpperCase() === 'ACTIVE'),
@@ -57,6 +59,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
     setResult(null)
     setNotice(null)
     setError(null)
+    setIsEvaluationFresh(false)
   }
 
   async function onEvaluate() {
@@ -67,7 +70,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
     try {
       const data = await evaluateCollateral(file)
       setCollateral(data)
-      setStep(2)
+      setIsEvaluationFresh(true)
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Collateral evaluation failed')
     } finally {
@@ -107,6 +110,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
       )
       setCards((prev) => upsertCardInList(prev, updated))
       onSelectCard(updated.id)
+      setIsEvaluationFresh(false)
       setNotice(
         `Credit applied to ${updated.cardNumberMasked}: +${money(Number(requestedAmount))} balance & debt, loan ${money(Number(updated.loanPrincipal ?? 0))}, limit ${money(updated.creditLimit)}`,
       )
@@ -196,14 +200,30 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
               )}
             </label>
 
-            <button
-              type="button"
-              className="btn-primary mt-4 w-full sm:w-auto"
-              disabled={!file || busy}
-              onClick={() => void onEvaluate()}
-            >
-              {busy ? 'Evaluating…' : 'Evaluate with AI'}
-            </button>
+            <div className="mt-4 flex w-full flex-wrap gap-3 sm:w-auto">
+              <button
+                type="button"
+                className={[
+                  'w-full duration-300 sm:w-auto',
+                  isEvaluationFresh ? 'btn-secondary' : 'btn-primary',
+                ].join(' ')}
+                disabled={!file || busy}
+                onClick={() => void onEvaluate()}
+              >
+                {busy ? 'Evaluating…' : 'Evaluate with AI'}
+              </button>
+              <button
+                type="button"
+                className={[
+                  'w-full duration-300 sm:w-auto',
+                  isEvaluationFresh ? 'btn-primary' : 'btn-secondary',
+                ].join(' ')}
+                disabled={!collateral || busy}
+                onClick={() => setStep(2)}
+              >
+                Proceed to credit
+              </button>
+            </div>
           </div>
 
           <div className="rounded-2xl bg-bank-ink p-5 text-white">
