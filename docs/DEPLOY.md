@@ -73,7 +73,18 @@ Dashboard: http://localhost:5173
 
 ## After Railway works
 
-Paste the frontend URL into README **Live Demo**.
+Public frontend URL (custom Railway domain slug):
+
+`https://zbk-banking.up.railway.app`
+
+The slug is documented as `PUBLIC_FRONTEND_DOMAIN` in `.env.example` (default `zbk-banking`).
+If you rename it in Railway (**frontend** → Public Networking → Edit), update:
+
+1. `PUBLIC_FRONTEND_DOMAIN` in `.env.example` (and local `.env` if present)
+2. The **Live Demo** URL in `README.md`
+
+No app code hardcodes the public hostname — browsers hit the SPA; Nginx proxies to
+private Railway DNS. Backends have no CORS allow-list tied to this domain.
 
 ## Note on `.railway/railway.ts`
 

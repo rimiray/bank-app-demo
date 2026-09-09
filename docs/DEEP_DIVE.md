@@ -544,7 +544,7 @@ Intentionally **absent** (not unfinished accidents):
 - Mobile native clients
 - Horizontal multi-instance cache coherence testing
 - Formal SLA, observability stack (OTel — Roadmap Q4)
-- Live public demo URL may still be pending (README Live Demo)
+- Live public demo: https://zbk-banking.up.railway.app (`PUBLIC_FRONTEND_DOMAIN`)
 
 ---
 

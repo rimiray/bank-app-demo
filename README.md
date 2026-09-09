@@ -1,17 +1,18 @@
 # ZBK Business Banking Self-Credit Demo Platform
 
 Event-driven microservices demo for card lifecycle, credit scoring, and AI collateral
-evaluation — showcasing contract-first APIs, RabbitMQ integration, and resilient Gemini Vision
+evaluation â showcasing contract-first APIs, RabbitMQ integration, and resilient Gemini Vision
 calls in a Business Banking self-credit flow.
 
 [![CI](https://github.com/rimiray/bank-app-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/rimiray/bank-app-demo/actions/workflows/ci.yml)
 
 ## Live Demo
 
-> **Public URL:** https://frontend-production-f6c0.up.railway.app  
+> **Public URL:** https://zbk-banking.up.railway.app  
+> Domain slug (`PUBLIC_FRONTEND_DOMAIN`) defaults to `zbk-banking` — see `.env.example` / [docs/DEPLOY.md](docs/DEPLOY.md).
 > Hosting: **Railway** via `.\scripts\railway-up.ps1` (one command for the full stack).  
 > Only the frontend has a public domain; backends stay on Railway private networking.  
-> Do **not** deploy the GitHub repo root with Railpack — that fails; use the script so all services are created.
+> Do **not** deploy the GitHub repo root with Railpack â that fails; use the script so all services are created.
 
 After deploy, Cards / Credit & Collateral / Architecture tabs should work; empty databases are
 seeded with 3 demo cards and one approved credit application.
@@ -61,15 +62,15 @@ flowchart TD
 | Document | What you will find |
 | --- | --- |
 | [Architecture ADR](docs/adr/0001-architecture-overview.md) | Contract-first polyglot services, event publish, AI model choice, and **explicit trade-offs** (Gateway, async gap, AI fallback, mobile) |
-| [12-month Roadmap](docs/ROADMAP.md) | Q1âQ4 path from PoC to production (security/gateway, mobile BFF & KMP, risk/event sourcing, observability) |
+| [12-month Roadmap](docs/ROADMAP.md) | Q1Ã¢ÂÂQ4 path from PoC to production (security/gateway, mobile BFF & KMP, risk/event sourcing, observability) |
 | [Engineering Standards](docs/ENGINEERING_STANDARDS.md) | Definition of Done, target GitFlow, banking code-review checklist, testing pyramid |
 | [Deploy guide](docs/DEPLOY.md) | Railway one-command stack via `.\scripts\railway-up.ps1` |
 
 **How we build today**
 
-- **Contract-First** â `docs/api/openapi.yaml` (OpenAPI 3.0) is the source of truth; CI lints it (`contract-lint`).
-- **Event-Driven** â `credit-service` publishes to RabbitMQ (`bank.events` / `credit.calculated`); card disbursement is still UI-orchestrated in the PoC (see ADR async gap â Roadmap Q3).
-- **AI Resilience** â retry + heuristic fallback now; Circuit Breaker planned on the Roadmap (Q3).
+- **Contract-First** Ã¢ÂÂ `docs/api/openapi.yaml` (OpenAPI 3.0) is the source of truth; CI lints it (`contract-lint`).
+- **Event-Driven** Ã¢ÂÂ `credit-service` publishes to RabbitMQ (`bank.events` / `credit.calculated`); card disbursement is still UI-orchestrated in the PoC (see ADR async gap Ã¢ÂÂ Roadmap Q3).
+- **AI Resilience** Ã¢ÂÂ retry + heuristic fallback now; Circuit Breaker planned on the Roadmap (Q3).
 
 ## Quick Start
 
@@ -77,11 +78,11 @@ flowchart TD
 
 - Docker Desktop (for the all-in-one stack)
 - Optional for IDE runs: Java 21, Node.js 22+
-- Copy secrets template and set a Gemini key (optional â without it, collateral uses heuristic fallback):
+- Copy secrets template and set a Gemini key (optional Ã¢ÂÂ without it, collateral uses heuristic fallback):
 
 ```bash
 cp .env.example .env
-# edit .env â GEMINI_API_KEY=...
+# edit .env Ã¢ÂÂ GEMINI_API_KEY=...
 ```
 
 `.env.example` uses **Docker network hostnames** (`postgres`, `redis`, `rabbitmq`) in `DB_URL` /
@@ -101,7 +102,7 @@ docker compose up --build
 | ai-collateral-service | http://localhost:8083 |
 | RabbitMQ UI | http://localhost:15672 |
 
-### 3. Deploy to Railway (CLI â not âDeploy repo rootâ)
+### 3. Deploy to Railway (CLI Ã¢ÂÂ not Ã¢ÂÂDeploy repo rootÃ¢ÂÂ)
 
 ```powershell
 railway login
