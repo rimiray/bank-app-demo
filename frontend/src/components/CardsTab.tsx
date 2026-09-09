@@ -12,6 +12,11 @@ function statusTone(status: string): string {
   return 'bg-bank-warn/15 text-bank-warn'
 }
 
+function panGroups(masked: string): string[] {
+  const normalized = masked.trim().split(/\s+/).filter(Boolean)
+  return normalized.length > 0 ? normalized : [masked]
+}
+
 function PlasticCard({
   card,
   selected,
@@ -24,12 +29,13 @@ function PlasticCard({
   const closed = card.status.toUpperCase() === 'CLOSED'
   const loan = Number(card.loanPrincipal ?? 0)
   const debt = Number(card.activeDebt ?? 0)
+  const groups = panGroups(card.cardNumberMasked)
   return (
     <button
       type="button"
       onClick={onSelect}
       className={[
-        'relative flex w-full max-w-md flex-col justify-between overflow-hidden rounded-xl bg-plastic',
+        'relative flex w-full max-w-md flex-col overflow-hidden rounded-xl bg-plastic',
         'aspect-[1.586/1] p-4 text-left text-white shadow-card transition sm:p-5',
         'hover:-translate-y-0.5',
         selected ? 'ring-2 ring-bank-teal ring-offset-2 ring-offset-bank-sand' : '',
@@ -44,14 +50,17 @@ function PlasticCard({
         <span className={`status-pill ${statusTone(card.status)}`}>{formatStatus(card.status)}</span>
       </div>
 
+      {/* Middle band — same .figure + semibold as Balance; groups edge-to-edge. */}
       <p
-        className="figure relative mt-3 w-full min-w-0 overflow-hidden whitespace-nowrap text-sm sm:mt-4 sm:text-base"
+        className="figure relative my-auto flex w-full shrink-0 justify-between gap-1 whitespace-nowrap text-sm font-semibold sm:text-base"
         title={card.cardNumberMasked}
       >
-        {card.cardNumberMasked}
+        {groups.map((group, i) => (
+          <span key={`${group}-${i}`}>{group}</span>
+        ))}
       </p>
 
-      <div className="relative mt-auto grid min-w-0 grid-cols-2 gap-x-3 gap-y-2 pt-3">
+      <div className="relative grid min-w-0 shrink-0 grid-cols-2 gap-x-3 gap-y-1 pt-2 sm:gap-y-1.5 sm:pt-3">
         <div className="min-w-0">
           <p className="text-xs text-white/55">Balance</p>
           <p
