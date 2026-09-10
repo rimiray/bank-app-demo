@@ -11,11 +11,13 @@ export default function App() {
   const [cards, setCards] = useState<CardResponse[]>([])
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [cardsLoading, setCardsLoading] = useState(true)
+  const [cardsLoadError, setCardsLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     void getCards()
       .then((data) => {
         setCards(data)
+        setCardsLoadError(null)
         setSelectedCardId((current) => {
           if (current && data.some((c) => c.id === current)) return current
           return data[0]?.id ?? null
@@ -23,6 +25,7 @@ export default function App() {
       })
       .catch(() => {
         setCards([])
+        setCardsLoadError('Не удалось загрузить карты, попробуйте обновить')
       })
       .finally(() => setCardsLoading(false))
   }, [])
@@ -59,6 +62,8 @@ export default function App() {
               selectedCardId={selectedCardId}
               onSelectCard={setSelectedCardId}
               initialLoading={cardsLoading}
+              loadError={cardsLoadError}
+              onClearLoadError={() => setCardsLoadError(null)}
             />
           </div>
           <div className={tab === 'credit' ? undefined : 'hidden'}>

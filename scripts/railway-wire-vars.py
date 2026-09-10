@@ -89,6 +89,7 @@ def main() -> None:
         "CARD_SERVICE_URL=http://${{card-service.RAILWAY_PRIVATE_DOMAIN}}:${{card-service.PORT}}",
         "CREDIT_SERVICE_URL=http://${{credit-service.RAILWAY_PRIVATE_DOMAIN}}:${{credit-service.PORT}}",
         "COLLATERAL_SERVICE_URL=http://${{ai-collateral-service.RAILWAY_PRIVATE_DOMAIN}}:${{ai-collateral-service.PORT}}",
+        "NGINX_RESOLVER=[fd12::10]",
         "SKIP_INFRA_PROBES=true",
     ]:
         set_var("frontend", pair)

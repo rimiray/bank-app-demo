@@ -91,7 +91,12 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
       })
       setResult(data)
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Credit calculation failed')
+      setResult(null)
+      setError(
+        e instanceof ApiError && e.status > 0 && e.status < 500
+          ? e.message
+          : 'Не удалось рассчитать кредит, попробуйте ещё раз',
+      )
     } finally {
       setBusy(false)
     }
@@ -396,6 +401,18 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
                   </div>
                 )}
               </div>
+            ) : error ? (
+              <div className="mt-6 space-y-3">
+                <p className="text-sm text-bank-danger">{error}</p>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={busy}
+                  onClick={() => void onCalculate()}
+                >
+                  Retry
+                </button>
+              </div>
             ) : (
               <p className="mt-6 text-sm text-bank-ink/45">
                 Fill in amount, income and term. Collateral value from AI is injected automatically.
@@ -408,7 +425,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
       {notice && (
         <p className="rounded-xl bg-bank-success/10 px-3 py-2 text-sm text-bank-success">{notice}</p>
       )}
-      {error && (
+      {error && (step === 1 || result) && (
         <p className="rounded-xl bg-bank-danger/10 px-3 py-2 text-sm text-bank-danger">{error}</p>
       )}
     </div>

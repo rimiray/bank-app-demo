@@ -108,6 +108,8 @@ interface Props {
   selectedCardId: string | null
   onSelectCard: (id: string | null) => void
   initialLoading: boolean
+  loadError?: string | null
+  onClearLoadError?: () => void
 }
 
 export function CardsTab({
@@ -116,6 +118,8 @@ export function CardsTab({
   selectedCardId,
   onSelectCard,
   initialLoading,
+  loadError = null,
+  onClearLoadError,
 }: Props) {
   const [amount, setAmount] = useState('100')
   const [loading, setLoading] = useState(false)
@@ -127,6 +131,8 @@ export function CardsTab({
   const selectedActive = selected?.status.toUpperCase() === 'ACTIVE'
   const showLoading = (initialLoading && cards.length === 0) || loading
   const balanceNum = selected != null ? Number(selected.balance) : NaN
+  const displayError = error ?? loadError
+  const showEmpty = !showLoading && cards.length === 0 && !displayError
   const debtNum = selected != null ? Number(selected.activeDebt ?? 0) : NaN
   const selectedClosed = selected?.status.toUpperCase() === 'CLOSED'
   const canClose =
@@ -214,13 +220,20 @@ export function CardsTab({
     try {
       const data = await getCards()
       setCards(data)
+      onClearLoadError?.()
       if (selectedCardId && !data.some((c) => c.id === selectedCardId)) {
         onSelectCard(data[0]?.id ?? null)
       } else if (!selectedCardId && data[0]) {
         onSelectCard(data[0].id)
       }
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Failed to load cards')
+      setError(
+        e instanceof ApiError
+          ? e.status >= 500
+            ? 'Не удалось загрузить карты, попробуйте обновить'
+            : e.message
+          : 'Не удалось загрузить карты, попробуйте обновить',
+      )
     } finally {
       setLoading(false)
     }
@@ -283,7 +296,21 @@ export function CardsTab({
           <div className="panel h-48 animate-pulse bg-gradient-to-r from-bank-mist via-white to-bank-mist bg-[length:200%_100%] animate-shimmer" />
         )}
 
-        {!showLoading && cards.length === 0 && (
+        {!showLoading && displayError && cards.length === 0 && (
+          <div className="panel space-y-3 p-6 text-center">
+            <p className="text-sm text-bank-danger">{displayError}</p>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => void refresh()}
+              disabled={loading}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {showEmpty && (
           <div className="panel p-8 text-center text-sm text-bank-ink/55">
             No cards yet. Issue your first card.
           </div>
@@ -434,8 +461,20 @@ export function CardsTab({
         {notice && (
           <p className="rounded-xl bg-bank-success/10 px-3 py-2 text-sm text-bank-success">{notice}</p>
         )}
-        {error && (
-          <p className="rounded-xl bg-bank-danger/10 px-3 py-2 text-sm text-bank-danger">{error}</p>
+        {displayError && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl bg-bank-danger/10 px-3 py-2 text-sm text-bank-danger">
+            <p className="flex-1">{displayError}</p>
+            {cards.length > 0 && (
+              <button
+                type="button"
+                className="btn-secondary shrink-0 border-bank-danger/30 text-bank-danger"
+                onClick={() => void refresh()}
+                disabled={loading}
+              >
+                Retry
+              </button>
+            )}
+          </div>
         )}
       </aside>
     </div>

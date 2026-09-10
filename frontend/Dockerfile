@@ -18,6 +18,7 @@ RUN chmod +x /healthprobe.sh \
 
 # Defaults match docker-compose service DNS names (overridden on Railway/Render).
 ENV NGINX_PORT=5173 \
+    NGINX_RESOLVER=127.0.0.11 \
     CARD_SERVICE_URL=http://card-service:8081 \
     CREDIT_SERVICE_URL=http://credit-service:8082 \
     COLLATERAL_SERVICE_URL=http://ai-collateral-service:8083 \

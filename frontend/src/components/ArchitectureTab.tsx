@@ -50,7 +50,7 @@ export function ArchitectureTab() {
 
   useEffect(() => {
     void refresh()
-    const id = window.setInterval(() => void refresh(), 8000)
+    const id = window.setInterval(() => void refresh(), 16000)
     return () => window.clearInterval(id)
   }, [refresh])
 

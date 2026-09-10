@@ -86,6 +86,18 @@ If you rename it in Railway (**frontend** → Public Networking → Edit), updat
 No app code hardcodes the public hostname — browsers hit the SPA; Nginx proxies to
 private Railway DNS. Backends have no CORS allow-list tied to this domain.
 
+### Nginx DNS after backend redeploys
+
+Frontend Nginx uses `resolver` + variable `proxy_pass` so upstream IPs are re-resolved
+(stale DNS after a backend redeploy used to cause 504). On Railway set:
+
+`NGINX_RESOLVER=[fd12::10]`
+
+(Local Compose uses Docker DNS `127.0.0.11`.) After deploying this frontend change, set the
+variable once (`scripts/railway-wire-vars.py` or dashboard), then redeploy **frontend**.
+To verify: Redeploy `card-service` and confirm `/api/v1/cards` recovers within ~5s without
+restarting the frontend.
+
 ## Note on `.railway/railway.ts`
 
 Kept as the desired-state description. The Windows CLI currently breaks `railway config apply`

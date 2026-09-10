@@ -124,6 +124,8 @@ export default defineRailway(() => {
         "http://${{credit-service.RAILWAY_PRIVATE_DOMAIN}}:${{credit-service.PORT}}",
       COLLATERAL_SERVICE_URL:
         "http://${{ai-collateral-service.RAILWAY_PRIVATE_DOMAIN}}:${{ai-collateral-service.PORT}}",
+      // Private-network DNS — staff-confirmed; not in official docs (see nginx.conf.template).
+      NGINX_RESOLVER: "[fd12::10]",
       SKIP_INFRA_PROBES: "true",
     },
   });
