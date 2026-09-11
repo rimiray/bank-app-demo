@@ -13,6 +13,87 @@ import type {
 
 type Step = 1 | 2
 
+/** Align with credit-service validation: amount/income >= 0.01; term 1..120. */
+const CREDIT_DEFAULTS = {
+  amount: '10000',
+  income: '3500',
+  term: '24',
+} as const
+
+const CREDIT_BOUNDS = {
+  amount: { min: 100, max: 100_000, step: 100 },
+  income: { min: 500, max: 25_000, step: 50 },
+  term: { min: 1, max: 120, step: 1 },
+} as const
+
+function clampNumber(n: number, min: number, max: number): number {
+  if (!Number.isFinite(n)) return min
+  return Math.min(max, Math.max(min, n))
+}
+
+function SliderField({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step,
+  suffix,
+}: {
+  label: string
+  value: string
+  onChange: (next: string) => void
+  min: number
+  max: number
+  step: number
+  suffix?: string
+}) {
+  const numeric = Number(value)
+  const sliderValue = clampNumber(Number.isFinite(numeric) ? numeric : min, min, max)
+
+  return (
+    <label className="block">
+      <span className="label flex items-center justify-between gap-2">
+        <span>{label}</span>
+        <span className="figure text-bank-ink/40">
+          {min}
+          {suffix ?? ''} – {max}
+          {suffix ?? ''}
+        </span>
+      </span>
+      <div className="mt-1 flex items-center gap-3">
+        <input
+          type="range"
+          className="h-2 w-full min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-bank-line accent-bank-teal"
+          min={min}
+          max={max}
+          step={step}
+          value={sliderValue}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <input
+          className="field figure w-[7.5rem] shrink-0"
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => {
+            const raw = e.target.value
+            if (raw === '') {
+              onChange('')
+              return
+            }
+            const n = Number(raw)
+            if (!Number.isFinite(n)) return
+            onChange(String(clampNumber(n, min, max)))
+          }}
+        />
+      </div>
+    </label>
+  )
+}
+
 interface Props {
   cards: CardResponse[]
   setCards: Dispatch<SetStateAction<CardResponse[]>>
@@ -26,9 +107,9 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
   const [preview, setPreview] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [collateral, setCollateral] = useState<CollateralEvaluationResponse | null>(null)
-  const [requestedAmount, setRequestedAmount] = useState('10000')
-  const [monthlyIncome, setMonthlyIncome] = useState('3500')
-  const [termMonths, setTermMonths] = useState('24')
+  const [requestedAmount, setRequestedAmount] = useState<string>(CREDIT_DEFAULTS.amount)
+  const [monthlyIncome, setMonthlyIncome] = useState<string>(CREDIT_DEFAULTS.income)
+  const [termMonths, setTermMonths] = useState<string>(CREDIT_DEFAULTS.term)
   const [result, setResult] = useState<CreditCalculationResponse | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -78,7 +159,14 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
     }
   }
 
+  const formReady =
+    Number(requestedAmount) > 0 && Number(monthlyIncome) > 0 && Number(termMonths) >= 1
+
   async function onCalculate() {
+    if (!formReady) {
+      setError('Enter amount, income and term before calculating')
+      return
+    }
     setBusy(true)
     setError(null)
     setNotice(null)
@@ -95,7 +183,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
       setError(
         e instanceof ApiError && e.status > 0 && e.status < 500
           ? e.message
-          : 'Не удалось рассчитать кредит, попробуйте ещё раз',
+          : 'Could not calculate credit — please try again',
       )
     } finally {
       setBusy(false)
@@ -115,10 +203,20 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
       )
       setCards((prev) => upsertCardInList(prev, updated))
       onSelectCard(updated.id)
-      setIsEvaluationFresh(false)
       setNotice(
         `Credit applied to ${updated.cardNumberMasked}: +${money(Number(requestedAmount))} balance & debt, loan ${money(Number(updated.loanPrincipal ?? 0))}, limit ${money(updated.creditLimit)}`,
       )
+      // Clear collateral + verdict state; remain on Credit substep.
+      if (preview) URL.revokeObjectURL(preview)
+      setFile(null)
+      setPreview(null)
+      setCollateral(null)
+      setResult(null)
+      setIsEvaluationFresh(false)
+      setRequestedAmount(CREDIT_DEFAULTS.amount)
+      setMonthlyIncome(CREDIT_DEFAULTS.income)
+      setTermMonths(CREDIT_DEFAULTS.term)
+      setError(null)
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to apply credit to card')
     } finally {
@@ -223,7 +321,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
                   'w-full duration-300 sm:w-auto',
                   isEvaluationFresh ? 'btn-primary' : 'btn-secondary',
                 ].join(' ')}
-                disabled={!collateral || busy}
+                disabled={busy}
                 onClick={() => setStep(2)}
               >
                 Proceed to credit
@@ -287,39 +385,30 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
                   ))}
                 </select>
               </label>
-              <label className="block">
-                <span className="label">Requested amount (EUR)</span>
-                <input
-                  className="field figure"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={requestedAmount}
-                  onChange={(e) => setRequestedAmount(e.target.value)}
-                />
-              </label>
-              <label className="block">
-                <span className="label">Monthly income (EUR)</span>
-                <input
-                  className="field figure"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={monthlyIncome}
-                  onChange={(e) => setMonthlyIncome(e.target.value)}
-                />
-              </label>
-              <label className="block">
-                <span className="label">Term (months)</span>
-                <input
-                  className="field figure"
-                  type="number"
-                  min="1"
-                  max="120"
-                  value={termMonths}
-                  onChange={(e) => setTermMonths(e.target.value)}
-                />
-              </label>
+              <SliderField
+                label="Requested amount (EUR)"
+                value={requestedAmount}
+                onChange={setRequestedAmount}
+                min={CREDIT_BOUNDS.amount.min}
+                max={CREDIT_BOUNDS.amount.max}
+                step={CREDIT_BOUNDS.amount.step}
+              />
+              <SliderField
+                label="Monthly income (EUR)"
+                value={monthlyIncome}
+                onChange={setMonthlyIncome}
+                min={CREDIT_BOUNDS.income.min}
+                max={CREDIT_BOUNDS.income.max}
+                step={CREDIT_BOUNDS.income.step}
+              />
+              <SliderField
+                label="Term (months)"
+                value={termMonths}
+                onChange={setTermMonths}
+                min={CREDIT_BOUNDS.term.min}
+                max={CREDIT_BOUNDS.term.max}
+                step={CREDIT_BOUNDS.term.step}
+              />
               <label className="block">
                 <span className="label">AI collateral value (auto)</span>
                 <input
@@ -339,7 +428,7 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
               <button
                 type="button"
                 className="btn-primary"
-                disabled={busy}
+                disabled={busy || !formReady}
                 onClick={() => void onCalculate()}
               >
                 {busy ? 'Calculating…' : 'Calculate credit'}
@@ -415,7 +504,8 @@ export function CreditTab({ cards, setCards, selectedCardId, onSelectCard }: Pro
               </div>
             ) : (
               <p className="mt-6 text-sm text-bank-ink/45">
-                Fill in amount, income and term. Collateral value from AI is injected automatically.
+                Defaults are ready (10000 EUR / 3500 EUR / 24 mo). Adjust with the sliders or type
+                exact values, then calculate. Collateral from AI is injected when step 1 is done.
               </p>
             )}
           </div>

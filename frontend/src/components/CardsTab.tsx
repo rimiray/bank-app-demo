@@ -230,9 +230,9 @@ export function CardsTab({
       setError(
         e instanceof ApiError
           ? e.status >= 500
-            ? 'Не удалось загрузить карты, попробуйте обновить'
+            ? 'Could not load cards — please refresh'
             : e.message
-          : 'Не удалось загрузить карты, попробуйте обновить',
+          : 'Could not load cards — please refresh',
       )
     } finally {
       setLoading(false)

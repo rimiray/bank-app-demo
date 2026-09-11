@@ -25,7 +25,7 @@ export default function App() {
       })
       .catch(() => {
         setCards([])
-        setCardsLoadError('Не удалось загрузить карты, попробуйте обновить')
+        setCardsLoadError('Could not load cards — please refresh')
       })
       .finally(() => setCardsLoading(false))
   }, [])
