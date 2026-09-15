@@ -1,5 +1,6 @@
 package com.bankapp.zbk.ui.credit
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -14,31 +15,59 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bankapp.zbk.shared.dto.CardResponse
 import com.bankapp.zbk.shared.dto.CreditApplicationRequest
+import com.bankapp.zbk.ui.cards.CardsUiState
+import com.bankapp.zbk.ui.cards.CardsViewModel
 import com.bankapp.zbk.ui.util.formatMoney
 import org.koin.androidx.compose.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreditScreen(
     modifier: Modifier = Modifier,
-    viewModel: CreditViewModel = koinViewModel(),
+    creditViewModel: CreditViewModel = koinViewModel(),
+    cardsViewModel: CardsViewModel = koinViewModel(),
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val state by creditViewModel.uiState.collectAsStateWithLifecycle()
+    val applying by creditViewModel.applying.collectAsStateWithLifecycle()
+    val applyError by creditViewModel.applyError.collectAsStateWithLifecycle()
+    val cardsState by cardsViewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    LaunchedEffect(creditViewModel) {
+        creditViewModel.events.collect { event ->
+            when (event) {
+                CreditEvent.ApplySuccess -> {
+                    Toast.makeText(context, "Success", Toast.LENGTH_SHORT).show()
+                    cardsViewModel.refresh()
+                }
+            }
+        }
+    }
 
     var amount by rememberSaveable { mutableStateOf("10000") }
     var income by rememberSaveable { mutableStateOf("3500") }
@@ -55,6 +84,13 @@ fun CreditScreen(
             incomeValue > 0 &&
             termValue != null &&
             termValue in 1..120
+
+    val activeCards =
+        when (val cards = cardsState) {
+            is CardsUiState.Success ->
+                cards.cards.filter { it.status.equals("ACTIVE", ignoreCase = true) }
+            else -> emptyList()
+        }
 
     Column(
         modifier =
@@ -126,7 +162,7 @@ fun CreditScreen(
                     return@Button
                 }
                 formError = null
-                viewModel.calculateCredit(
+                creditViewModel.calculateCredit(
                     CreditApplicationRequest(
                         requestedAmount = amountValue,
                         monthlyIncome = incomeValue,
@@ -134,7 +170,7 @@ fun CreditScreen(
                     ),
                 )
             },
-            enabled = formReady && state !is CreditUiState.Loading,
+            enabled = formReady && state !is CreditUiState.Loading && !applying,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(if (state is CreditUiState.Loading) "Calculating…" else "Calculate")
@@ -194,10 +230,112 @@ fun CreditScreen(
                         )
                     }
                 }
+
+                if (ui.result.status.equals("APPROVED", ignoreCase = true)) {
+                    ApplyCreditSection(
+                        activeCards = activeCards,
+                        applying = applying,
+                        applyError = applyError,
+                        onApply = creditViewModel::applyCreditToSelectedCard,
+                    )
+                }
             }
         }
 
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ApplyCreditSection(
+    activeCards: List<CardResponse>,
+    applying: Boolean,
+    applyError: String?,
+    onApply: (cardId: String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var selectedCardId by rememberSaveable {
+        mutableStateOf(activeCards.firstOrNull()?.id.orEmpty())
+    }
+
+    // Keep selection valid when the cards list refreshes.
+    LaunchedEffect(activeCards) {
+        if (activeCards.none { it.id == selectedCardId }) {
+            selectedCardId = activeCards.firstOrNull()?.id.orEmpty()
+        }
+    }
+
+    val selectedLabel =
+        activeCards
+            .firstOrNull { it.id == selectedCardId }
+            ?.let { "${it.cardNumberMasked} · ${formatMoney(it.balance, it.currency)}" }
+            ?: "No active cards"
+
+    Text(
+        text = "Apply to card",
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.SemiBold,
+    )
+
+    if (activeCards.isEmpty()) {
+        Text(
+            text = "No active cards available. Issue or activate a card first.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+    ) {
+        OutlinedTextField(
+            modifier =
+                Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth(),
+            readOnly = true,
+            value = selectedLabel,
+            onValueChange = {},
+            label = { Text("Target card") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            activeCards.forEach { card ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            "${card.cardNumberMasked} · bal ${formatMoney(card.balance, card.currency)}",
+                        )
+                    },
+                    onClick = {
+                        selectedCardId = card.id
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+
+    applyError?.let {
+        Text(
+            text = it,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+
+    Button(
+        onClick = { onApply(selectedCardId) },
+        enabled = selectedCardId.isNotBlank() && !applying,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(if (applying) "Applying…" else "Apply to Selected Card")
     }
 }
 

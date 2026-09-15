@@ -1,5 +1,6 @@
 package com.bankapp.zbk.shared.data
 
+import com.bankapp.zbk.shared.dto.ApplyCreditRequest
 import com.bankapp.zbk.shared.dto.CardResponse
 import com.bankapp.zbk.shared.dto.CreditApplicationRequest
 import com.bankapp.zbk.shared.dto.CreditCalculationResponse
@@ -39,6 +40,24 @@ class BankingRepository(
                 .post("$baseUrl/credits/calculate") {
                     contentType(ContentType.Application.Json)
                     setBody(request)
+                }.body()
+        }
+
+    suspend fun applyCreditToCard(
+        cardId: String,
+        amount: Double,
+        approvedLimit: Double,
+    ): Result<CardResponse> =
+        runCatchingApi {
+            client
+                .post("$baseUrl/cards/$cardId/apply-credit") {
+                    contentType(ContentType.Application.Json)
+                    setBody(
+                        ApplyCreditRequest(
+                            disbursementAmount = amount,
+                            approvedCreditLimit = approvedLimit,
+                        ),
+                    )
                 }.body()
         }
 
