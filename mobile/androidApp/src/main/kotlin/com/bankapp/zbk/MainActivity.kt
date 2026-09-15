@@ -10,19 +10,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.bankapp.zbk.shared.data.BankingRepository
-import org.koin.android.ext.android.inject
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.bankapp.zbk.ui.cards.CardsUiState
+import com.bankapp.zbk.ui.cards.CardsViewModel
+import org.koin.androidx.compose.koinViewModel
 
 class MainActivity : ComponentActivity() {
-    private val bankingRepository: BankingRepository by inject()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Touch the injected repository so Koin wiring is verified at startup.
-        checkNotNull(bankingRepository)
         setContent {
             ZbkCreditCompanionApp()
         }
@@ -30,7 +29,9 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun ZbkCreditCompanionApp() {
+private fun ZbkCreditCompanionApp(cardsViewModel: CardsViewModel = koinViewModel()) {
+    val cardsState by cardsViewModel.uiState.collectAsStateWithLifecycle()
+
     MaterialTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
             Box(
@@ -41,7 +42,13 @@ private fun ZbkCreditCompanionApp() {
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "ZBK Credit Companion",
+                    text =
+                        when (val state = cardsState) {
+                            CardsUiState.Loading -> "ZBK Credit Companion · loading cards…"
+                            is CardsUiState.Success ->
+                                "ZBK Credit Companion · ${state.cards.size} card(s)"
+                            is CardsUiState.Error -> "ZBK Credit Companion · ${state.message}"
+                        },
                     style = MaterialTheme.typography.headlineSmall,
                 )
             }
