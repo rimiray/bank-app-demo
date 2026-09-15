@@ -3,55 +3,66 @@ package com.bankapp.zbk
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.bankapp.zbk.ui.cards.CardsUiState
-import com.bankapp.zbk.ui.cards.CardsViewModel
-import org.koin.androidx.compose.koinViewModel
+import com.bankapp.zbk.ui.cards.CardsScreen
+import com.bankapp.zbk.ui.credit.CreditScreen
+import com.bankapp.zbk.ui.navigation.ZbkDestination
+import com.bankapp.zbk.ui.theme.ZbkTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
-            ZbkCreditCompanionApp()
+            ZbkTheme {
+                ZbkCreditCompanionApp()
+            }
         }
     }
 }
 
 @Composable
-private fun ZbkCreditCompanionApp(cardsViewModel: CardsViewModel = koinViewModel()) {
-    val cardsState by cardsViewModel.uiState.collectAsStateWithLifecycle()
+private fun ZbkCreditCompanionApp() {
+    var destination by rememberSaveable { mutableStateOf(ZbkDestination.Cards) }
 
-    MaterialTheme {
-        Surface(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text =
-                        when (val state = cardsState) {
-                            CardsUiState.Loading -> "ZBK Credit Companion · loading cards…"
-                            is CardsUiState.Success ->
-                                "ZBK Credit Companion · ${state.cards.size} card(s)"
-                            is CardsUiState.Error -> "ZBK Credit Companion · ${state.message}"
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        bottomBar = {
+            NavigationBar {
+                ZbkDestination.entries.forEach { tab ->
+                    NavigationBarItem(
+                        selected = destination == tab,
+                        onClick = { destination = tab },
+                        icon = {
+                            Icon(
+                                imageVector = tab.icon,
+                                contentDescription = tab.label,
+                            )
                         },
-                    style = MaterialTheme.typography.headlineSmall,
-                )
+                        label = { Text(tab.label) },
+                    )
+                }
             }
+        },
+    ) { innerPadding ->
+        when (destination) {
+            ZbkDestination.Cards ->
+                CardsScreen(modifier = Modifier.padding(innerPadding))
+            ZbkDestination.Credit ->
+                CreditScreen(modifier = Modifier.padding(innerPadding))
         }
     }
 }
