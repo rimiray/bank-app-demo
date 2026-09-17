@@ -131,7 +131,10 @@ jobs:
             mobile/gradle/libs.versions.toml
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          # Obsolete `tools` package is gone from the SDK repo; default install fails.
+          packages: platform-tools
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
