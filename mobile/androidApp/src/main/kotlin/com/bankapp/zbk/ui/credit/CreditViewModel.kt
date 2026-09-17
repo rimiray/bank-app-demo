@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.bankapp.zbk.shared.data.BankingRepository
 import com.bankapp.zbk.shared.dto.CreditApplicationRequest
 import com.bankapp.zbk.shared.dto.CreditCalculationResponse
+import com.bankapp.zbk.ui.util.ApiErrorMessages
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -15,6 +16,10 @@ import kotlinx.coroutines.launch
 
 sealed interface CreditEvent {
     data object ApplySuccess : CreditEvent
+
+    data class ErrorMessage(
+        val text: String,
+    ) : CreditEvent
 }
 
 class CreditViewModel(
@@ -26,9 +31,6 @@ class CreditViewModel(
     private val _applying = MutableStateFlow(false)
     val applying: StateFlow<Boolean> = _applying.asStateFlow()
 
-    private val _applyError = MutableStateFlow<String?>(null)
-    val applyError: StateFlow<String?> = _applyError.asStateFlow()
-
     private val _events = MutableSharedFlow<CreditEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<CreditEvent> = _events.asSharedFlow()
 
@@ -37,7 +39,6 @@ class CreditViewModel(
 
     fun calculateCredit(request: CreditApplicationRequest) {
         viewModelScope.launch {
-            _applyError.value = null
             _uiState.value = CreditUiState.Loading
             repository
                 .calculateCredit(request)
@@ -48,11 +49,9 @@ class CreditViewModel(
                 }.onFailure { error ->
                     lastRequest = null
                     lastResult = null
-                    _uiState.value =
-                        CreditUiState.Error(
-                            error.message?.takeIf { it.isNotBlank() }
-                                ?: "Failed to calculate credit",
-                        )
+                    // Leave Idle so the loader is gone and Calculate is enabled again.
+                    _uiState.value = CreditUiState.Idle
+                    _events.emit(CreditEvent.ErrorMessage(ApiErrorMessages.from(error)))
                 }
         }
     }
@@ -62,13 +61,14 @@ class CreditViewModel(
         val result = lastResult
         if (request == null || result == null) return
         if (!result.status.equals("APPROVED", ignoreCase = true)) {
-            _applyError.value = "Credit was not approved"
+            viewModelScope.launch {
+                _events.emit(CreditEvent.ErrorMessage("Credit was not approved"))
+            }
             return
         }
 
         viewModelScope.launch {
             _applying.value = true
-            _applyError.value = null
             repository
                 .applyCreditToCard(
                     cardId = cardId,
@@ -79,9 +79,7 @@ class CreditViewModel(
                     _events.emit(CreditEvent.ApplySuccess)
                 }.onFailure { error ->
                     _applying.value = false
-                    _applyError.value =
-                        error.message?.takeIf { it.isNotBlank() }
-                            ?: "Failed to apply credit"
+                    _events.emit(CreditEvent.ErrorMessage(ApiErrorMessages.from(error)))
                 }
         }
     }
@@ -89,7 +87,6 @@ class CreditViewModel(
     fun reset() {
         lastRequest = null
         lastResult = null
-        _applyError.value = null
         _applying.value = false
         _uiState.value = CreditUiState.Idle
     }

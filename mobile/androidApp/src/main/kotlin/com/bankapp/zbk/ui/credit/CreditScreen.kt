@@ -22,6 +22,9 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,9 +57,9 @@ fun CreditScreen(
 ) {
     val state by creditViewModel.uiState.collectAsStateWithLifecycle()
     val applying by creditViewModel.applying.collectAsStateWithLifecycle()
-    val applyError by creditViewModel.applyError.collectAsStateWithLifecycle()
     val cardsState by cardsViewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(creditViewModel) {
         creditViewModel.events.collect { event ->
@@ -64,6 +67,9 @@ fun CreditScreen(
                 CreditEvent.ApplySuccess -> {
                     Toast.makeText(context, "Success", Toast.LENGTH_SHORT).show()
                     cardsViewModel.refresh()
+                }
+                is CreditEvent.ErrorMessage -> {
+                    snackbarHostState.showSnackbar(event.text)
                 }
             }
         }
@@ -92,157 +98,167 @@ fun CreditScreen(
             else -> emptyList()
         }
 
-    Column(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = "Credit calculator",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = "Enter amount, monthly income and term (1–120 months).",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    val busy = state is CreditUiState.Loading || applying
 
-        OutlinedTextField(
-            value = amount,
-            onValueChange = {
-                amount = it
-                formError = null
-            },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Requested amount (EUR)") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        )
-        OutlinedTextField(
-            value = income,
-            onValueChange = {
-                income = it
-                formError = null
-            },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Monthly income (EUR)") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        )
-        OutlinedTextField(
-            value = term,
-            onValueChange = {
-                term = it
-                formError = null
-            },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Term (months)") },
-            supportingText = { Text("Must be between 1 and 120") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            isError = term.isNotBlank() && termValue !in 1..120,
-        )
-
-        formError?.let {
-            Text(
-                text = it,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-        }
-
-        Button(
-            onClick = {
-                if (!formReady || amountValue == null || incomeValue == null || termValue == null) {
-                    formError = "Enter a valid amount, income and term (1–120)."
-                    return@Button
-                }
-                formError = null
-                creditViewModel.calculateCredit(
-                    CreditApplicationRequest(
-                        requestedAmount = amountValue,
-                        monthlyIncome = incomeValue,
-                        termMonths = termValue,
-                    ),
-                )
-            },
-            enabled = formReady && state !is CreditUiState.Loading && !applying,
-            modifier = Modifier.fillMaxWidth(),
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { padding ->
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(if (state is CreditUiState.Loading) "Calculating…" else "Calculate")
-        }
+            Text(
+                text = "Credit calculator",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "Enter amount, monthly income and term (1–120 months).",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
 
-        when (val ui = state) {
-            CreditUiState.Idle -> {
+            OutlinedTextField(
+                value = amount,
+                onValueChange = {
+                    amount = it
+                    formError = null
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Requested amount (EUR)") },
+                singleLine = true,
+                enabled = !busy,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            )
+            OutlinedTextField(
+                value = income,
+                onValueChange = {
+                    income = it
+                    formError = null
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Monthly income (EUR)") },
+                singleLine = true,
+                enabled = !busy,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            )
+            OutlinedTextField(
+                value = term,
+                onValueChange = {
+                    term = it
+                    formError = null
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Term (months)") },
+                supportingText = { Text("Must be between 1 and 120") },
+                singleLine = true,
+                enabled = !busy,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = term.isNotBlank() && termValue !in 1..120,
+            )
+
+            formError?.let {
                 Text(
-                    text = "Results will appear here after Calculate.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            CreditUiState.Loading -> {
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            is CreditUiState.Error -> {
-                Text(
-                    text = ui.message,
+                    text = it,
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            is CreditUiState.Success -> {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+
+            Button(
+                onClick = {
+                    if (!formReady || amountValue == null || incomeValue == null || termValue == null) {
+                        formError = "Enter a valid amount, income and term (1–120)."
+                        return@Button
+                    }
+                    formError = null
+                    creditViewModel.calculateCredit(
+                        CreditApplicationRequest(
+                            requestedAmount = amountValue,
+                            monthlyIncome = incomeValue,
+                            termMonths = termValue,
                         ),
-                ) {
+                    )
+                },
+                enabled = formReady && !busy,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (state is CreditUiState.Loading) "Calculating…" else "Calculate")
+            }
+
+            when (val ui = state) {
+                CreditUiState.Idle -> {
+                    Text(
+                        text = "Results will appear here after Calculate.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                CreditUiState.Loading -> {
                     Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text(
-                            text = "Verdict · ${ui.result.status}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        ResultRow(
-                            label = "Monthly payment",
-                            value = formatMoney(ui.result.monthlyPayment),
-                        )
-                        ResultRow(
-                            label = "Approved limit",
-                            value = formatMoney(ui.result.approvedLimit),
-                        )
-                        ResultRow(
-                            label = "Interest rate",
-                            value = "${ui.result.interestRate} %",
+                        CircularProgressIndicator()
+                    }
+                }
+                is CreditUiState.Error -> {
+                    Text(
+                        text = ui.message,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+                is CreditUiState.Success -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            ),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                text = "Verdict · ${ui.result.status}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            ResultRow(
+                                label = "Monthly payment",
+                                value = formatMoney(ui.result.monthlyPayment),
+                            )
+                            ResultRow(
+                                label = "Approved limit",
+                                value = formatMoney(ui.result.approvedLimit),
+                            )
+                            ResultRow(
+                                label = "Interest rate",
+                                value = "${ui.result.interestRate} %",
+                            )
+                        }
+                    }
+
+                    if (ui.result.status.equals("APPROVED", ignoreCase = true)) {
+                        ApplyCreditSection(
+                            activeCards = activeCards,
+                            applying = applying,
+                            onApply = creditViewModel::applyCreditToSelectedCard,
                         )
                     }
                 }
-
-                if (ui.result.status.equals("APPROVED", ignoreCase = true)) {
-                    ApplyCreditSection(
-                        activeCards = activeCards,
-                        applying = applying,
-                        applyError = applyError,
-                        onApply = creditViewModel::applyCreditToSelectedCard,
-                    )
-                }
             }
-        }
 
-        Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
+        }
     }
 }
 
@@ -251,7 +267,6 @@ fun CreditScreen(
 private fun ApplyCreditSection(
     activeCards: List<CardResponse>,
     applying: Boolean,
-    applyError: String?,
     onApply: (cardId: String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -259,7 +274,6 @@ private fun ApplyCreditSection(
         mutableStateOf(activeCards.firstOrNull()?.id.orEmpty())
     }
 
-    // Keep selection valid when the cards list refreshes.
     LaunchedEffect(activeCards) {
         if (activeCards.none { it.id == selectedCardId }) {
             selectedCardId = activeCards.firstOrNull()?.id.orEmpty()
@@ -289,7 +303,7 @@ private fun ApplyCreditSection(
 
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
+        onExpandedChange = { if (!applying) expanded = !expanded },
     ) {
         OutlinedTextField(
             modifier =
@@ -299,6 +313,7 @@ private fun ApplyCreditSection(
             readOnly = true,
             value = selectedLabel,
             onValueChange = {},
+            enabled = !applying,
             label = { Text("Target card") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
         )
@@ -320,14 +335,6 @@ private fun ApplyCreditSection(
                 )
             }
         }
-    }
-
-    applyError?.let {
-        Text(
-            text = it,
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodyMedium,
-        )
     }
 
     Button(

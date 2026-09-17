@@ -17,9 +17,14 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -36,50 +41,78 @@ fun CardsScreen(
     viewModel: CardsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    when (val ui = state) {
-        CardsUiState.Loading -> {
-            Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+    LaunchedEffect(viewModel) {
+        viewModel.userMessages.collect { message ->
+            snackbarHostState.showSnackbar(message)
         }
-        is CardsUiState.Error -> {
-            Column(
-                modifier =
-                    modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = ui.message,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.error,
-                )
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = viewModel::refresh) {
-                    Text("Retry")
-                }
-            }
-        }
-        is CardsUiState.Success -> {
-            if (ui.cards.isEmpty()) {
-                Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "No cards yet",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+    }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { padding ->
+        when (val ui = state) {
+            CardsUiState.Loading -> {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    items(ui.cards, key = { it.id }) { card ->
-                        PlasticCardItem(card = card)
+                    CircularProgressIndicator()
+                }
+            }
+            is CardsUiState.Error -> {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            .padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = ui.message,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = viewModel::refresh) {
+                        Text("Retry")
+                    }
+                }
+            }
+            is CardsUiState.Success -> {
+                if (ui.cards.isEmpty()) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(padding),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "No cards yet",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(padding),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(ui.cards, key = { it.id }) { card ->
+                            PlasticCardItem(card = card)
+                        }
                     }
                 }
             }
