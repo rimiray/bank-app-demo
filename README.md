@@ -48,6 +48,41 @@ flowchart TD
 | `credit-service` | Java 21, Spring Boot 3 | 8082 |
 | `ai-collateral-service` | Java 21, Spring Boot 3 | 8083 |
 | Frontend dashboard | React + Vite + TypeScript (Nginx in Docker) | 5173 |
+| ZBK Mobile Companion | Kotlin Multiplatform + Jetpack Compose | — |
+
+## ZBK Mobile Companion (KMP)
+
+Android MVP under [`mobile/`](mobile/) — see [ADR-0002](docs/mobile/0002-mobile-kmp-architecture.md).
+
+**Architecture (ADR-0002):** shared non-UI logic in a Kotlin Multiplatform module; native UI stays on Android.
+
+| Module | Stack | Role |
+| --- | --- | --- |
+| `shared` | **Ktor Client** + **kotlinx.serialization** (+ Koin) | HTTP calls and DTOs aligned with `docs/api/openapi.yaml` — one client contract reused with the web dashboard paths |
+| `androidApp` | **Jetpack Compose** (native) | Screens, navigation, theming — no shared UI toolkit for the MVP |
+
+OpenAPI remains the server source of truth; the shared module mirrors those contracts instead of inventing a mobile-only schema. iOS / Compose Multiplatform UI are out of scope for this ADR.
+
+### Build and run (Android emulator)
+
+1. Start the backend + frontend proxy so `/api/v1` is reachable on the host (e.g. `docker compose up --build`, or Vite on `:5173` with services on `8081`–`8083`).
+2. Open the **`mobile/`** folder in Android Studio (Ladybug+) as a Gradle project, or build from the CLI:
+
+```bash
+cd mobile
+./gradlew :shared:assemble :androidApp:assembleDebug
+# Windows: .\gradlew.bat :shared:assemble :androidApp:assembleDebug
+```
+
+3. Run **`androidApp`** on an **Android emulator**. The default API base URL is:
+
+```text
+http://10.0.2.2:5173/api/v1
+```
+
+`10.0.2.2` is the emulator’s alias for the host machine’s loopback, so traffic goes through the same Vite/Nginx proxy as the web dashboard (`/api/v1/...` → card / credit / collateral services). A physical device needs the host LAN IP (or another tunnel) instead of `10.0.2.2`.
+
+CI job `mobile-android` assembles the same Gradle targets on every push/PR — see [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Key Business Features
 
@@ -62,6 +97,7 @@ flowchart TD
 | Document | What you will find |
 | --- | --- |
 | [Architecture ADR](docs/adr/0001-architecture-overview.md) | Contract-first polyglot services, event publish, AI model choice, and **explicit trade-offs** (Gateway, async gap, AI fallback, mobile) |
+| [Mobile KMP ADR](docs/mobile/0002-mobile-kmp-architecture.md) | Shared Ktor client + kotlinx.serialization; native Jetpack Compose Android UI (ADR-0002) |
 | [12-month Roadmap](docs/ROADMAP.md) | Q1–Q4 path from PoC to production (security/gateway, mobile BFF & KMP, risk/event sourcing, observability) |
 | [Engineering Standards](docs/ENGINEERING_STANDARDS.md) | Definition of Done, target GitFlow, banking code-review checklist, testing pyramid |
 | [Deploy guide](docs/DEPLOY.md) | Railway one-command stack via `.\scripts\railway-up.ps1` |
