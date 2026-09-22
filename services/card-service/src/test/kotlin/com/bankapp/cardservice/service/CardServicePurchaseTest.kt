@@ -49,6 +49,84 @@ class CardServicePurchaseTest {
     }
 
     @Test
+    fun should_throwInsufficientFunds_whenDebtAlreadyAtCreditLimit_andAmountExceedsBalance() {
+        // Post apply-credit shape: cash and debt both rose; unused revolving headroom is 0.
+        val card = activeCard(
+            balance = BigDecimal("10000.00"),
+            creditLimit = BigDecimal("10000.00"),
+            activeDebt = BigDecimal("10000.00"),
+        )
+        every { cardRepository.findById(card.id) } returns Optional.of(card)
+
+        assertThatThrownBy {
+            cardService.purchase(card.id, BigDecimal("10000.01"))
+        }.isInstanceOf(InsufficientFundsException::class.java)
+
+        assertThat(card.balance).isEqualByComparingTo("10000.00")
+        assertThat(card.activeDebt).isEqualByComparingTo("10000.00")
+        verify(exactly = 0) { transactionRepository.save(any()) }
+        verify(exactly = 0) { cardRepository.save(any()) }
+    }
+
+    @Test
+    fun should_spendOnlyCash_whenDebtAlreadyAtCreditLimit_andAmountWithinBalance() {
+        val card = activeCard(
+            balance = BigDecimal("10000.00"),
+            creditLimit = BigDecimal("10000.00"),
+            activeDebt = BigDecimal("10000.00"),
+        )
+        every { cardRepository.findById(card.id) } returns Optional.of(card)
+        every { transactionRepository.save(any()) } answers { firstArg() }
+        every { cardRepository.save(any()) } answers { firstArg() }
+
+        val result = cardService.purchase(card.id, BigDecimal("2500.00"))
+
+        assertThat(card.balance).isEqualByComparingTo("7500.00")
+        assertThat(card.activeDebt).isEqualByComparingTo("10000.00")
+        assertThat(result.balance).isEqualByComparingTo("7500.00")
+        assertThat(result.activeDebt).isEqualByComparingTo("10000.00")
+    }
+
+    @Test
+    fun should_allowPurchaseUpToUnusedCreditHeadroom_whenDebtExists() {
+        // available = 50 + max(0, 100 - 80) = 70
+        val card = activeCard(
+            balance = BigDecimal("50.00"),
+            creditLimit = BigDecimal("100.00"),
+            activeDebt = BigDecimal("80.00"),
+        )
+        every { cardRepository.findById(card.id) } returns Optional.of(card)
+        every { transactionRepository.save(any()) } answers { firstArg() }
+        every { cardRepository.save(any()) } answers { firstArg() }
+
+        val result = cardService.purchase(card.id, BigDecimal("70.00"))
+
+        assertThat(card.balance).isEqualByComparingTo(BigDecimal.ZERO)
+        assertThat(card.activeDebt).isEqualByComparingTo("100.00")
+        assertThat(result.activeDebt).isEqualByComparingTo("100.00")
+    }
+
+    @Test
+    fun should_throwInsufficientFunds_whenAmountExceedsUnusedCreditHeadroom_evenIfBalancePlusFullLimitWouldCover() {
+        // Old buggy formula: 100 + 50 = 150 would accept 145 and push debt past the limit.
+        // Correct: 100 + max(0, 50 - 10) = 140 → reject.
+        val card = activeCard(
+            balance = BigDecimal("100.00"),
+            creditLimit = BigDecimal("50.00"),
+            activeDebt = BigDecimal("10.00"),
+        )
+        every { cardRepository.findById(card.id) } returns Optional.of(card)
+
+        assertThatThrownBy {
+            cardService.purchase(card.id, BigDecimal("145.00"))
+        }.isInstanceOf(InsufficientFundsException::class.java)
+
+        assertThat(card.balance).isEqualByComparingTo("100.00")
+        assertThat(card.activeDebt).isEqualByComparingTo("10.00")
+        verify(exactly = 0) { transactionRepository.save(any()) }
+    }
+
+    @Test
     fun should_setBalanceToZeroAndIncreaseActiveDebt_whenPurchaseExceedsBalanceWithinLimit() {
         val card = activeCard(
             balance = BigDecimal("30.00"),

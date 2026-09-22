@@ -113,10 +113,10 @@ transaction ledger rows.
 **Invariants enforced in `CardService` (not DB CHECK beyond transaction type migrator):**
 
 - Mutating ops on non-ACTIVE cards → treated as not found (`CardNotFoundException` → 404).
-- **Purchase available funds** = `balance + creditLimit`. If amount exceeds that →
-  `InsufficientFundsException` → **402**. Otherwise: drain balance first; shortfall increases
-  `activeDebt`. **`creditLimit` is not reduced when debt grows** — it is available-headroom math,
-  not a drawn revolving facility ledger.
+- **Purchase available funds** = `balance + max(0, creditLimit - activeDebt)`. If amount exceeds
+  that → `InsufficientFundsException` → **402**. Otherwise: drain balance first; shortfall
+  increases `activeDebt`. **`creditLimit` is not reduced when debt grows** — unused revolving
+  headroom shrinks via `activeDebt` (so post–apply-credit cash+debt does not inflate spend power).
 - **Top-up** with `activeDebt > 0`: debt (and `loanPrincipal`) paid first; remainder → balance.
 - **Close:** ACTIVE only; refuse if `activeDebt > 0` or `balance < 0`.
 - **Delete:** refuse if debt > 0 or balance < 0; deletes transactions then card (CLOSED ok if clean).
@@ -419,7 +419,7 @@ on GitHub branch protection (not defined in-repo).
 
 | Class | Cases |
 | --- | --- |
-| `CardServicePurchaseTest` | Insufficient → exception, no save; over-balance purchase zeros balance and raises debt |
+| `CardServicePurchaseTest` | Insufficient → exception, no save; debt-at-limit / unused-headroom cases; over-balance purchase zeros balance and raises debt |
 | `CardServiceCloseTest` | Reject close on debt; reject on negative balance; close when clean |
 | `CardServiceCacheEvictTest` | Issue card evicts Redis `cards` cache |
 | `CardControllerHttpStatusTest` | HTTP **402** on purchase; HTTP **400** on close with debt |
@@ -554,7 +554,7 @@ Intentionally **absent** (not unfinished accidents):
 | --- | --- |
 | **activeDebt** | Outstanding amount owed on a card from over-limit purchases and/or credit disbursement |
 | **loanPrincipal** | Principal associated with disbursed credit; reduced when top-ups pay down debt |
-| **creditLimit** | Purchase headroom added to balance; raised by apply-credit; not decremented when debt rises |
+| **creditLimit** | Revolving facility ceiling; unused headroom is `max(0, creditLimit - activeDebt)`; raised by apply-credit; not decremented when debt rises |
 | **CardStatus** | `ACTIVE` or `CLOSED` |
 | **Annuity** | Fixed monthly payment for principal at annual rate over `termMonths` |
 | **DTI gate** | Approval if monthly payment ≤ 40% of stated monthly income |

@@ -66,7 +66,9 @@ class CardService(
     @Transactional
     fun purchase(cardId: String, amount: BigDecimal): CardResponse {
         val card = findActiveCard(cardId)
-        val available = card.balance.add(card.creditLimit)
+        // Cash + unused revolving headroom (limit already drawn into activeDebt must not count twice).
+        val unusedCredit = (card.creditLimit - card.activeDebt).max(BigDecimal.ZERO)
+        val available = card.balance.add(unusedCredit)
         if (available < amount) {
             throw InsufficientFundsException()
         }
